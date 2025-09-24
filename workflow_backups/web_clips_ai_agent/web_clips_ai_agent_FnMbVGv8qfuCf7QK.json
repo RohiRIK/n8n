@@ -1,0 +1,731 @@
+{
+  "name": "web_clips_ai_agent",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1248,
+        2624
+      ],
+      "id": "ed153740-986b-41c9-8d19-2f41864d49f4",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "7028e9dd-da8a-483b-b3f7-e3fecbafb8b5",
+          "mode": "list",
+          "cachedResultName": "Notes Database",
+          "cachedResultUrl": "https://www.notion.so/7028e9ddda8a483bb3f7e3fecbafb8b5"
+        },
+        "limit": 1,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Reference|url",
+              "condition": "is_not_empty"
+            },
+            {
+              "key": "TLDR|rich_text",
+              "condition": "is_empty"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -1024,
+        2720
+      ],
+      "id": "80485109-57ab-4df5-bbc0-a47894f58da9",
+      "name": "Notion",
+      "alwaysOutputData": true,
+      "credentials": {
+        "notionApi": {
+          "id": "Vpza7HmATHumPcuq",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "23d4b703-987e-45aa-9695-82a9a7573293",
+              "name": "id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "97e6e3a9-3585-4bbc-a4a1-0c76f065a765",
+              "name": "topic",
+              "value": "={{ $json.property_topics }}",
+              "type": "array"
+            },
+            {
+              "id": "f56daf5b-2ef6-4257-9241-fbb977802bf9",
+              "name": "tldr",
+              "value": "={{ $json.property_tldr }}",
+              "type": "string"
+            },
+            {
+              "id": "ee163db7-6df4-4563-b9ff-4d22a0097550",
+              "name": "Url",
+              "value": "={{ $json.property_reference }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -176,
+        2720
+      ],
+      "id": "b19a8110-9520-4b70-9f59-918def5d30a6",
+      "name": "Format_propertites"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=\n\nPlease scrape and summarize the article at the following URL: {{ $json.Url }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=# IDENTITY and PURPOSE\n\nYou are an expert content summarizer. You take content in and output a Markdown formatted summary using the format below.\n\nTake a deep breath and think step by step about how to best accomplish this goal using the following steps.\n\n# 🔧 TOOLS\n* **Tool Name:** `Firecrawl_Tool`\n* **Tool Description:** This tool is an HTTP Request that scrapes a URL. To use it, you must provide a JSON object in the request body with the URL as the value for the \"url\" key.\n    * **Example Body:** `{\n  \"url\": \"{{ $json.Url }}\",\n  \"formats\": [\n    \"markdown\"\n  ]\n} `\n\n\n# OUTPUT SECTIONS\n\n- Combine all of your understanding of the content into a single, 20-word sentence in a section called ONE SENTENCE SUMMARY:.\n\n- Output the 10 most important points of the content as a list with no more than 16 words per point into a section called MAIN POINTS:.\n\n- Output a list of the 5 best takeaways from the content in a section called TAKEAWAYS:.\n\n# OUTPUT INSTRUCTIONS\n\n- Receive the User Message containing a URL.\n- Your first and only action is to use the `Firecrawl_Tool` to scrape the content from that URL. Do not try to access the URL in any other way.\n- Once the tool returns the scraped text, analyze it thoroughly.\n- Create the output using the formatting above.\n- You only output human readable Markdown.\n- Output numbered lists, not bullets.\n- Do not output warnings or notes—just the requested sections.\n- Do not repeat items in the output sections.\n- Do not start items with the same opening words."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        48,
+        2720
+      ],
+      "id": "7455cdbb-3e13-49b6-9588-c02e99a472fb",
+      "name": "AI_article_summarise"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Please extract the topic and keywords for the following text:\n\n{{ $json.output }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "# Persona\nYou are a highly efficient text analysis engine. Your sole purpose is to read a given text and extract its core topic and most relevant keywords. You are precise, fast, and always follow the output format. You do not explain yourself or add any extra words.\n\n# Task & Rules\nFrom the text provided by the user, you must perform the following actions:\n\n1.  **Identify the Topic:**\n    * The topic must be a short, descriptive title for the text.\n    * It MUST be between 1 and 3 words long.\n\n2.  **Extract Keywords:**\n    * The keywords must be the most important concepts, technologies, or named entities in the text.\n    * Provide a list of exactly 3 keywords.\n    * Each keyword MUST be between 1 and 3 words long.\n\n# Output Format\nYou MUST provide your response as a single, clean JSON object that validates against the required schema. Do not add any text before or after the JSON. The structure must be exactly as follows:\n\n{\n  \"topic\": \"The topic you identified\",\n  \"keywords\": [\n    \"The first keyword\",\n    \"The second keyword\",\n    \"The third keyword\"\n  ]\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        624,
+        2720
+      ],
+      "id": "fe3828e6-83a6-4408-a4e5-53568ed3cc50",
+      "name": "AI_Topic_Extraction"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        400,
+        2720
+      ],
+      "id": "11be6f01-53d7-421b-9c94-c245429cc346",
+      "name": "Wait",
+      "webhookId": "f9888de1-e4b2-4646-a6d6-b9b2bbc8e5a3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9af2b7f1-67f4-4b26-affb-c5fd9a3bf311",
+              "name": "AI_Topic_Extraction 1 item",
+              "value": "={{ $json.output.topic }}",
+              "type": "string"
+            },
+            {
+              "id": "093c6e19-8a66-448b-bf0b-36c5c23324b2",
+              "name": "AI_article_summarise",
+              "value": "={{ $('AI_article_summarise').item.json.output }}",
+              "type": "string"
+            },
+            {
+              "id": "8a3b87d1-f4d9-494f-8031-b7b7a981802d",
+              "name": "keywords 1",
+              "value": "={{ $json.output.keywords[0] }}",
+              "type": "string"
+            },
+            {
+              "id": "cff30180-ea01-42c3-a093-19a83bb21a7d",
+              "name": "keywords 2",
+              "value": "={{ $json.output.keywords[1] }}",
+              "type": "string"
+            },
+            {
+              "id": "f28fce03-2c91-411e-bce1-0a8da8a8b67c",
+              "name": "Keywords 3",
+              "value": "={{ $json.output.keywords[2] }}",
+              "type": "string"
+            },
+            {
+              "id": "16396ab2-2dd6-42f3-992e-4244ff9bebfe",
+              "name": "Page to update ID",
+              "value": "={{ $('Notion').item.json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        992,
+        2720
+      ],
+      "id": "24f0594e-a147-4b66-be9a-6c860537aa02",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 20-23 * * * "
+            },
+            {
+              "field": "cronExpression",
+              "expression": "0 0-8 * * * "
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1248,
+        2832
+      ],
+      "id": "6c71474a-a87a-4aec-a7ba-5d76c0853b7a",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json['Page to update ID'] }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "TLDR|rich_text",
+              "textContent": "={{ $json.AI_article_summarise }}"
+            },
+            {
+              "key": "Topics|multi_select",
+              "multiSelectValue": "={{ [$json['AI_Topic_Extraction 1 item'] ,$json['keywords 1'],$json['keywords 2'],$json['Keywords 3']].join() }}"
+            },
+            {
+              "key": "Status|status",
+              "statusValue": "Processed"
+            },
+            {
+              "key": "Type|select",
+              "selectValue": "Web Clip"
+            },
+            {
+              "key": "Tags|multi_select",
+              "multiSelectValue": [
+                "Article"
+              ]
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        1216,
+        2720
+      ],
+      "id": "163eca59-19e3-4a55-8a11-5eb9bbbd52d7",
+      "name": "Update a database page",
+      "credentials": {
+        "notionApi": {
+          "id": "Vpza7HmATHumPcuq",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        64,
+        2944
+      ],
+      "id": "3ab3948f-2511-43f1-a580-85a373b17d3f",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "WdOCetfAcE7xCi4x",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://firecrawl.rohi.life/v1/scrape",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('JSON', ``, 'json') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        176,
+        2944
+      ],
+      "id": "5013141d-6177-4ad4-bf62-2192c1fc992f",
+      "name": "HTTP Request1",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "eFwntbjfFyKCMtKV",
+          "name": "Firecrawl"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"topic\": \"[A descriptive topic title]\",\n  \"keywords\": [\n    \"[Keyword 1]\",\n    \"[Keyword 2]\",\n    \"[Keyword 3]\"\n  ]\n}",
+        "autoFix": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        624,
+        2944
+      ],
+      "id": "bb9e60a4-4254-4542-ab56-9b47531d47e4",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "7028e9dd-da8a-483b-b3f7-e3fecbafb8b5",
+          "mode": "list",
+          "cachedResultName": "Notes Database",
+          "cachedResultUrl": "https://www.notion.so/7028e9ddda8a483bb3f7e3fecbafb8b5"
+        },
+        "limit": 1,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Reference|url",
+              "condition": "is_not_empty"
+            },
+            {
+              "key": "TLDR|rich_text",
+              "condition": "is_not_empty"
+            },
+            {
+              "key": "Status|status",
+              "condition": "equals",
+              "statusValue": "Inbox"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -464,
+        2992
+      ],
+      "id": "bdcb56c3-a28d-4220-a81c-47216803657d",
+      "name": "get)not_processed",
+      "credentials": {
+        "notionApi": {
+          "id": "Vpza7HmATHumPcuq",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "769e029b-5642-4c4c-8852-8a0fece144c1",
+              "leftValue": "={{ $json }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -816,
+        2720
+      ],
+      "id": "de793a10-83a9-4d9f-a674-ae9953645604",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "bb71ffa6-07da-43d8-9e51-0178590876e7",
+              "leftValue": "={{ $json.property_areas }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "fd5a2961-917d-4e63-a6e7-a466434624fc",
+              "leftValue": "={{ $json.property_projects }}",
+              "rightValue": "",
+              "operator": {
+                "type": "array",
+                "operation": "empty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "bdf7750f-df0e-4481-94d0-bd7d69cea391",
+              "leftValue": "={{ $json.property_resources }}",
+              "rightValue": "",
+              "operator": {
+                "type": "array",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -240,
+        3008
+      ],
+      "id": "a7647293-9bd2-4ca3-90e1-e9e1a1bb5e9c",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status|status",
+              "statusValue": "Processed"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        3104
+      ],
+      "id": "d1741dec-c961-418a-af1d-6703b72378b1",
+      "name": "move_the_note_to_Proccdced",
+      "credentials": {
+        "notionApi": {
+          "id": "Vpza7HmATHumPcuq",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status|status",
+              "statusValue": "Sorted"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        3248
+      ],
+      "id": "f6393bad-79f2-4663-ae82-ef177f1f05cf",
+      "name": "Sorting the ntoe",
+      "credentials": {
+        "notionApi": {
+          "id": "Vpza7HmATHumPcuq",
+          "name": "Notion account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Notion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format_propertites": {
+      "main": [
+        [
+          {
+            "node": "AI_article_summarise",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI_article_summarise": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "AI_Topic_Extraction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI_Topic_Extraction": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Update a database page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Notion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI_article_summarise",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "AI_Topic_Extraction",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Structured Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI_article_summarise",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI_Topic_Extraction",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Format_propertites",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "get)not_processed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get)not_processed": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "move_the_note_to_Proccdced",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sorting the ntoe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Jerusalem",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "createdAt": "2025-07-11T13:24:01.346Z",
+  "updatedAt": "2025-08-21T06:20:58.948Z"
+}
