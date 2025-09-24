@@ -1,0 +1,379 @@
+{
+  "name": "Gemini_for_security",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -64
+      ],
+      "id": "0c53adcd-3eab-4592-a785-e72a665aa511",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "url": "https://graph.microsoft.com/v1.0/security/alerts",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        352,
+        -64
+      ],
+      "id": "a9471d46-287d-47f4-8b9a-8f47c38e9b8f",
+      "name": "HTTP Request",
+      "credentials": {
+        "oAuth2Api": {
+          "id": "SwX6WKa4Jiqn10uw",
+          "name": "Graph_accse"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        880,
+        -64
+      ],
+      "id": "187a3c22-0873-4574-921c-809372caea6c",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        960,
+        496
+      ],
+      "id": "e1377435-0da5-4848-989b-43e455d2f6d6",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "WdOCetfAcE7xCi4x",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "mistral:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        160,
+        304
+      ],
+      "id": "d765799a-3b31-41b6-b2f0-eaee512af139",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "LprBiyyLSqKEHJGl",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"analysis_summary\": \"What was found and the result (e.g., threat or false positive).\",\n  \"final_status\": \"Final outcome (e.g., Resolved, Escalated).\",\n  \"recommended_action\": \"Next steps or no action needed.\"\n}",
+        "autoFix": true,
+        "customizeRetryPrompt": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1520,
+        368
+      ],
+      "id": "4557c7ae-974b-40b0-b4a2-a078425b70c2",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://firecrawl.rohi.life/v1/scrape",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('JSON', ``, 'json') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        1168,
+        320
+      ],
+      "id": "87083adc-7ce0-407c-a14e-60b7dab9cbf6",
+      "name": "firecrawl-tool",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "eFwntbjfFyKCMtKV",
+          "name": "Firecrawl"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "http://searxng:8080/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters0_Name', ``, 'string') }}",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters0_Value', ``, 'string') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        1344,
+        320
+      ],
+      "id": "ef8a54d7-8a1a-4687-9308-4a1906fd7cc8",
+      "name": "SearXNG_http"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "value",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        640,
+        -64
+      ],
+      "id": "bf21b1d6-1d04-4a23-90ba-c20d9463207b",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "output"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1376,
+        -304
+      ],
+      "id": "3e6f51c8-3125-4fc8-85b6-522539890c21",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze the security alert data provided below. Pay close attention to the `title`, `severity`, `status`, and especially the `comments` to understand the final outcome.\n\nAlert Data:\nID: {{ $json.id }}\nAzure Tenant ID: {{ $json.azureTenantId }}\nRisk Score: {{ $json.riskScore }}\nSeverity: {{ $json.severity }}\nCategory: {{ $json.category }}\nTitle: {{ $json.title }}\nStatus: {{ $json.status }}\nDescription: {{ $json.description }}\nComments: {{ $json.comments }}\nCreated Date: {{ $json.createdDateTime }}\nEvent Date: {{ $json.eventDateTime }}\nLast Modified: {{ $json.lastModifiedDateTime }}\nVendor: {{ $json.vendorInformation.vendor }}\nProvider: {{ $json.vendorInformation.provider }}\nRecommended Actions: {{ $json.recommendedActions }}\nTags: {{ $json.tags }}\nSender: {{ $json.sender }}\nRecipients: {{ $json.recipient }}\n\n{{\n/* Build the userStates block for this alert */\n($json.userStates || [])\n  .map((u, i) => [\n    `User State ${i + 1}:`,\n    `  AAD User ID: ${u.aadUserId}`,\n    `  User Principal Name: ${u.userPrincipalName}`,\n    `  Email Role: ${u.emailRole}`,\n    `  Logon Date Time: ${u.logonDateTime}`,\n    `  Logon IP: ${u.logonIp}`,\n    `  Logon Location: ${u.logonLocation}`,\n    `  Risk Score: ${u.riskScore}`,\n    `  User Account Type: ${u.userAccountType}`,\n    `  On-Prem SID: ${u.onPremisesSecurityIdentifier}`\n  ].join('\\n'))\n  .join('\\n\\n') || 'No userStates found.'\n}}\n\n\n\nRespond **only** with valid JSON in exactly this structure:\n```json\n{\n  \"analysis_summary\": \"\",\n  \"final_status\": \"\",\n  \"recommended_action\": \"\"\n}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are an expert Tier 1 Security Analyst. Your job is to analyze security alert data and provide a concise, actionable summary for the team. You must determine the alert's nature, its final status, and recommend the next logical step. Your output must always be in the requested JSON format.\n\nTake deep breaths, understand the workflow, and then start.\n\n### Tool Arsenal: A Strategic Guide\n\nTo effectively investigate alerts, you must use your tools in a precise, two-step workflow: **1. Discovery** and **2. Extraction**. Each tool has a specific role in this process.\n\n**Step 1: Discovery Phase**\n\n**Tool: `SearXNG_http` (The Reconnaissance Tool)**\n\n* **Purpose**: Use this tool for broad discovery and information gathering. It is your primary tool for exploring the open web when you **do not have a specific, known URL**. Think of it as your global search engine for finding new intelligence.\n* **When to Use**:\n    * You need to understand a new threat or CVE (e.g., `\"details on CVE-2025-12345\"`).\n    * You need to research the reputation of an IP address, domain, or file hash (e.g., `\"reputation of IP 198.51.100.2\"`, `\"analysis of hash 5d41402abc4b2a76b9719d911017c592\"`).\n    * You need to find articles, blog posts, or threat intelligence reports on a topic (e.g., `\"FIN7 TTPs 2024\"`).\n* **Required Input**: A search query string (e.g., `\"What is the malware family associated with this hash...\"`).\n* **Expected Output**: A list of potentially relevant URLs.\n\n\n**Step 2: Extraction Phase**\n\n**Tool: `firecrawl-tool` (The Extraction Tool)**\n\n* **Purpose**: Use this tool for targeted content extraction from a **single, known URL**. It is used *after* the discovery phase to read the contents of a specific page you have identified.\n* **When to Use**:\n    * After `SearXNG_http` returns a promising URL to a security advisory or threat analysis blog.\n    * An alert or log provides a direct URL that needs to be analyzed (e.g., scraping a known phishing page).\n* **Required Input**: A single, complete URL (e.g., `\"https://securityblog.example.com/threat-analysis-of-cve-2025-12345\"`).\n* **Expected Output**: The full text content of that specific webpage.\n\n\n### The Golden Rule & Mandatory Workflow\n\nYou must follow this sequence. Misusing these tools will lead to errors.\n\n1.  **Start with a Question**: What information do I need to find?\n2.  **Discover with `SearXNG_http`**: Use your question to form a search query and execute it to get a list of URLs.\n3.  **Analyze & Select**: Review the URLs from the search results to identify the most promising source.\n4.  **Extract with `firecrawl-tool`**: Take the single best URL and use `firecrawl-tool` to read its content.\n\n**CRUCIAL**: Never use `firecrawl-tool` with a search query. Never use `SearXNG_http` if you already have the exact URL you need to read.\nCRUCIAL: Do not send data before validating it through quick research. You are dealing with critical information that must be handled with care."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        1136,
+        64
+      ],
+      "id": "75a8c812-303c-4baa-b348-760e1a51fb57",
+      "name": "security_analyst_teir_1"
+    },
+    {
+      "parameters": {
+        "content": "### security_analyst_tier_1  \n* **Purpose**:  \n  - Understand what the alert is about.  \n  - Summarize the alert clearly and briefly.  \n  - Check if the alert has already been resolved or is still active.  \n  - Decide whether to escalate the alert and to whom (e.g., Tier 2, SOC lead, or IT).  \n  - Do not take remediation actions — only review, summarize, and route the alert appropriately.  \n\n* **Key Focus Areas**:  \n  - Identify the type of alert (malware, login anomaly, suspicious activity, etc.).  \n  - Determine if it's a false positive or needs further attention.  \n  - Keep the summary neutral, factual, and actionable.  \n  - Use the Discovery and Extraction tools to gather basic context when needed.  \n\n* **Output**:  \n  - A concise summary in JSON format with:  \n    - `analysis_summary`  \n    - `final_status`  \n    - `recommended_action`\n\n\n### security_analyst_tier_1  \n* **Purpose**:  \n  - Understand what the alert is about.  \n  - Check if it has already been resolved or not.  \n  - Summarize the alert clearly and briefly.  \n  - Decide whether to close the alert or send it to Tier 2 for deeper investigation.  \n\n* **Responsibilities**:  \n  - Perform high-level triage based only on available alert data.  \n  - Do **not** use investigation tools or external lookups.  \n  - Do **not** contact other teams (e.g., IT) or take action.  \n  - Only review, assess, and route.  \n  - Submit findings in JSON format.\n\n* **Output (JSON)**:  \n```json\n{\n  \"analysis_summary\": \"Short description of the alert's content or behavior.\",\n  \"final_status\": \"Resolved | Open | Escalated | False Positive | Other\",\n  \"recommended_action\": \"Suggest escalation to Tier 2 or closure.\"\n}\n```",
+        "height": 440,
+        "width": 780,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -224,
+        -928
+      ],
+      "typeVersion": 1,
+      "id": "7b8dc5a8-b3a6-4c7e-bfaa-dfb95900d56e",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "### security_analyst_tier_2  \n* **Purpose**:  \n  - Perform deeper investigation and analysis of alerts escalated from Tier 1.  \n  - Research threat intelligence, analyze logs, and correlate data to understand the full context and root cause.  \n  - Validate or refute Tier 1 assessments with detailed evidence.  \n  - Determine the scope, impact, and potential risk of the alert.  \n  - Provide detailed recommendations for remediation or containment.  \n  - Coordinate with other teams (e.g., IT, Incident Response) if escalation is required.  \n\n* **Key Responsibilities**:  \n  - Use advanced tools and techniques to gather additional intelligence beyond initial triage.  \n  - Use the Discovery and Extraction tools in the defined order (SearXNG_http → firecrawl-tool).  \n  - Conduct forensic analysis on affected systems when necessary.  \n  - Monitor for related activity or indicators of compromise (IOCs).  \n  - Document findings clearly with evidence and timeline.  \n  - Update alert status based on investigation outcomes.  \n  - Communicate actionable intelligence to relevant stakeholders.  \n\n* **Expected Outputs**:  \n  - Comprehensive analysis reports or updates in structured format.  \n  - Clear final status with actionable next steps (remediation, monitoring, or closure).  \n  - Escalation to Incident Response or management for critical incidents.  \n\n\n\n\n\n### security_analyst_tier_2  \n* **Purpose**:  \n  - Conduct in-depth investigation of alerts escalated by Tier 1.  \n  - Research context, correlate data, and determine root cause and impact.  \n  - Recommend next steps (e.g., containment, monitoring, escalation).  \n\n* **Responsibilities**:  \n  - Use investigation tools as needed (e.g., SearXNG_http → firecrawl-tool).  \n  - Perform contextual enrichment (e.g., look up IPs, hashes, domains).  \n  - Identify patterns, lateral movement, or related incidents.  \n  - Provide structured, well-supported recommendations.  \n  - Do **not** contact IT directly — only recommend escalation paths.  \n\n* **Output (JSON)**:  \n```json\n{\n  \"analysis_summary\": \"Detailed explanation of the alert and related evidence.\",\n  \"final_status\": \"Escalated | Contained | Monitoring | False Positive | Resolved\",\n  \"recommended_action\": \"Recommend action (e.g., escalate to SOC lead, continue monitoring).\"\n}\n```\n",
+        "height": 540,
+        "width": 940,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        608,
+        -928
+      ],
+      "id": "c61721c9-49ac-49b9-a444-38cf3b471f8d",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "### SOC_lead  \n* **Purpose**:  \n  - Review all recommendations from Tier 1 and Tier 2 analysts.  \n  - Make final decisions on whether to escalate, investigate further, or involve other teams (e.g., IT).  \n  - Act as the human-in-the-loop and decision authority.  \n  - Can directly mark alerts as **Resolved** when appropriate.\n\n* **Responsibilities**:  \n  - Validate escalation paths and determine if additional resources are needed.  \n  - Engage IT or Incident Response **only when necessary**.  \n  - Ensure proper documentation, communication, and ownership of next steps.  \n  - Coordinate high-severity or organization-wide incidents.  \n  - Finalize alert status and confirm closure when no further action is needed.\n\n* **Actions**:  \n  - Decide whether to accept or override Tier 2 recommendations.  \n  - Loop in external teams with full context if needed.  \n  - Track and approve all escalations involving real-world impact.  \n  - Mark alerts as **Resolved**, **Closed**, or **Reassigned** based on findings.\n\n* **Output (JSON)**:  \n```json\n{\n  \"analysis_summary\": \"Final summary of the investigation and decision.\",\n  \"final_status\": \"Resolved | Closed | Reassigned | Escalated\",\n  \"recommended_action\": \"Final directive or action taken based on all prior input.\"\n}\n```",
+        "height": 740,
+        "width": 720,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1584,
+        -928
+      ],
+      "typeVersion": 1,
+      "id": "b774ba80-f698-4b16-8534-74e76411f011",
+      "name": "Sticky Note2"
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "security_analyst_teir_1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Structured Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "security_analyst_teir_1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "security_analyst_teir_1",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "firecrawl-tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "security_analyst_teir_1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SearXNG_http": {
+      "ai_tool": [
+        [
+          {
+            "node": "security_analyst_teir_1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "security_analyst_teir_1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "createdAt": "2025-07-12T12:19:50.386Z",
+  "updatedAt": "2025-08-04T08:26:28.355Z"
+}
