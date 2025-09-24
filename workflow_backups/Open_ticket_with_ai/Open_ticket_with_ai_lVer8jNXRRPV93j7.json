@@ -1,0 +1,231 @@
+{
+  "name": "Open_ticket_with_ai",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "9781d0f2-3436-4844-9f08-ccf25c4bdb8f",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -64,
+        0
+      ],
+      "id": "b8cf28f0-9e66-440e-a3d4-f1aa4118c588",
+      "name": "Webhook",
+      "webhookId": "9781d0f2-3436-4844-9f08-ccf25c4bdb8f"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        288,
+        272
+      ],
+      "id": "7fc94cf6-a939-4cd7-b2a6-1fdf7a91a8bf",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "WdOCetfAcE7xCi4x",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        864,
+        0
+      ],
+      "id": "5da65d47-cae0-4861-9ab6-849eba1afbde",
+      "name": "open_ticket",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=# IDENTITY and PURPOSE\nYou are an expert **IT Device Health Analyzer**. Your primary function is to process raw device health data and generate a structured JSON report. This report must include a concise, human-readable summary for IT support and a list of actionable remediation steps.\n\n# INPUT\nYou will be provided with a JSON object, delimited by triple backticks, containing device health data and the current date.\n\n```json\n{\n  \"deviceName\": \"string\",\n  \"userPrincipalName\": \"string\",\n  \"currentDate\": \"YYYY-MM-DD\",\n  \"managedDevice\": {\n    \"ComplianceState\": \"string\",\n    \"isEncrypted\": boolean,\n    \"LastSyncDateTime\": \"YYYY-MM-DDTHH:MM:SSZ\"\n  },\n  \"scores\": {\n    \"endpointAnalyticsScore\": number,\n    \"startupPerformanceScore\": number,\n    \"appReliabilityScore\": number,\n    \"batteryHealthScore\": number\n  }\n}\n```\n\n# OUTPUT FORMAT\nYour final output **must be a single JSON object** with the following structure. Do not include any other text, explanations, or conversational remarks.\n\n```json\n{\n  \"summary\": \"A 2-3 sentence human-readable summary of the device's status, prioritizing critical issues.\",\n  \"recommendations\": [\n    {\n      \"issue\": \"A short description of a single identified issue.\",\n      \"recommendation\": \"A concise, actionable remediation step for that specific issue.\"\n    }\n  ]\n}\n```\n\n# INSTRUCTIONS: Analyze Device Health and Generate Report\n\nFollow these steps precisely to analyze the input data and generate the output JSON:\n\n1.  **Identify Device:** Determine the device identifier. Prefer `userPrincipalName` if available; otherwise, use `deviceName`.\n2.  **Evaluate Compliance & Security (High Priority Issues):**\n    *   **Compliance State:** If `managedDevice.ComplianceState` is anything other than \"Compliant\", identify this as a high-priority issue.\n    *   **Encryption Status:** If `managedDevice.isEncrypted` is `false`, identify this as a critical security risk.\n    *   **Last Sync Date:** Calculate if `managedDevice.LastSyncDateTime` is more than 7 days older than the `currentDate` provided in the input. If so, identify this as a sync issue.\n3.  **Evaluate Performance Scores (Medium Priority Issues):**\n    *   For each score in the `scores` object (`endpointAnalyticsScore`, `startupPerformanceScore`, `appReliabilityScore`, `batteryHealthScore`), if its value is below **50**, identify it as a performance issue, noting the specific score type.\n4.  **Synthesize Summary:**\n    *   Start the summary by identifying the device using the identifier from Step 1.\n    *   If no issues were identified in Steps 2 and 3, generate the summary: \"This device, registered to `[device_identifier]`, appears to be operating within normal parameters with no critical issues detected.\"\n    *   If issues were identified, combine them into a concise, professional summary (2-3 sentences), prioritizing security and compliance issues first.\n    *   Place the final summary into the `summary` field of the output JSON.\n5.  **Generate Remediation Recommendations:**\n    *   For each identified issue, create a corresponding recommendation object. Prioritize security and compliance recommendations first, followed by performance recommendations.\n    *   Use the following predefined templates for recommendations:\n        *   **Non-Compliant:** `{ \"issue\": \"Device is not compliant\", \"recommendation\": \"Investigate compliance policy failures in the endpoint management portal. Force a device sync and re-evaluate.\" }`\n        *   **Not Encrypted:** `{ \"issue\": \"Disk encryption is disabled\", \"recommendation\": \"Ensure BitLocker (or relevant policy) is enabled and active. Force a device sync and reboot to enforce the policy.\" }`\n        *   **Not Synced Recently:** `{ \"issue\": \"Device has not synced recently\", \"recommendation\": \"Verify the device's network connectivity. If online, restart the management agent service and initiate a manual sync.\" }`\n        *   **Poor Startup Performance:** `{ \"issue\": \"Poor startup performance\", \"recommendation\": \"Review and disable non-essential startup applications via Task Manager. Check for pending OS or driver updates.\" }`\n        *   **Poor App Reliability:** `{ \"issue\": \"Poor application reliability\", \"recommendation\": \"Use Event Viewer to identify specific application crashes. Attempt to repair, reinstall, or update the problematic applications.\" }`\n        *   **Poor Battery Health:** `{ \"issue\": \"Poor battery health\", \"recommendation\": \"Advise the user to run the manufacturer's battery diagnostic tool. The battery may be failing and require replacement.\" }`\n    *   Place all generated recommendation objects into the `recommendations` array. If no issues were found, this array should be empty (`[]`).\n\n# EXAMPLES\n\n## Example 1 (Compliance and Performance Issues)\n\n```json\n{\n \"deviceName\": \"Laptop-001\",\n \"userPrincipalName\": \"john.doe@example.com\",\n \"currentDate\": \"2025-09-04\",\n \"managedDevice\": { \"ComplianceState\": \"NonCompliant\", \"isEncrypted\": true, \"LastSyncDateTime\": \"2025-08-28T10:00:00Z\" },\n \"scores\": { \"endpointAnalyticsScore\": 70, \"startupPerformanceScore\": 60, \"appReliabilityScore\": 35, \"batteryHealthScore\": 85 }\n}\n```\n\n**Expected Output for Example 1:**\n\n```json\n{\n  \"summary\": \"This device, registered to john.doe@example.com, requires immediate attention because it is out of compliance with security policies. Furthermore, it is experiencing poor application reliability, which is likely impacting user productivity.\",\n  \"recommendations\": [\n    {\n      \"issue\": \"Device is not compliant\",\n      \"recommendation\": \"Investigate compliance policy failures in the endpoint management portal. Force a device sync and re-evaluate.\"\n    },\n    {\n      \"issue\": \"Poor application reliability\",\n      \"recommendation\": \"Use Event Viewer to identify specific application crashes. Attempt to repair, reinstall, or update the problematic applications.\"\n    }\n  ]\n}\n```\n\n## Example 2 (Multiple Security and Performance Issues)\n\n```json\n{\n \"deviceName\": \"Desktop-042\",\n \"userPrincipalName\": \"jane.smith@example.com\",\n \"currentDate\": \"2025-09-04\",\n \"managedDevice\": { \"ComplianceState\": \"Compliant\", \"isEncrypted\": false, \"LastSyncDateTime\": \"2025-08-15T10:00:00Z\" },\n \"scores\": { \"endpointAnalyticsScore\": 65, \"startupPerformanceScore\": 42, \"appReliabilityScore\": 70, \"batteryHealthScore\": 75 }\n}\n```\n\n**Expected Output for Example 2:**\n\n```json\n{\n  \"summary\": \"This device, registered to jane.smith@example.com, poses a significant security risk because disk encryption is disabled and it has not synchronized in over a week. It is also flagged for poor startup performance.\",\n  \"recommendations\": [\n    {\n      \"issue\": \"Disk encryption is disabled\",\n      \"recommendation\": \"Ensure BitLocker (or relevant policy) is enabled and active. Force a device sync and reboot to enforce the policy.\"\n    },\n    {\n      \"issue\": \"Device has not synced recently\",\n      \"recommendation\": \"Verify the device's network connectivity. If online, restart the management agent service and initiate a manual sync.\"\n    },\n    {\n      \"issue\": \"Poor startup performance\",\n      \"recommendation\": \"Review and disable non-essential startup applications via Task Manager. Check for pending OS or driver updates.\"\n    }\n  ]\n}\n```\n\n## Example 3 (No Issues)\n\n```json\n{\n \"deviceName\": \"Server-Prod-01\",\n \"userPrincipalName\": \"admin@example.com\",\n \"currentDate\": \"2025-09-04\",\n \"managedDevice\": { \"ComplianceState\": \"Compliant\", \"isEncrypted\": true, \"LastSyncDateTime\": \"2025-08-28T10:00:00Z\" },\n \"scores\": { \"endpointAnalyticsScore\": 80, \"startupPerformanceScore\": 80, \"appReliabilityScore\": 90, \"batteryHealthScore\": 95 }\n}\n```\n\n**Expected Output for Example 3:**\n\n```json\n{\n  \"summary\": \"This device, registered to admin@example.com, appears to be operating within normal parameters with no critical issues detected.\",\n  \"recommendations\": []\n}\n```\n                                              "
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        400,
+        0
+      ],
+      "id": "ea1d1103-32dd-422c-bdbe-82b84f057b86",
+      "name": "IT_Device_Health_Analyzer"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a9064f63-2044-4d27-abe2-a33a201f035b",
+              "name": "device",
+              "value": "={{ $json.body.device }}",
+              "type": "object"
+            },
+            {
+              "id": "78ecbd42-27e6-43a9-9a34-49fe8b90915e",
+              "name": "Scores",
+              "value": "={{ $json.body.signals.performance }}",
+              "type": "object"
+            },
+            {
+              "id": "15fb4246-e8c5-4ff3-a8aa-2b88c0a00d1e",
+              "name": " instructions",
+              "value": "={{ $json.body.ai.instructions }}",
+              "type": "string"
+            },
+            {
+              "id": "e6f1eab1-fb56-4918-9745-27c1fc73197b",
+              "name": "executionMode",
+              "value": "={{ $json.executionMode }}",
+              "type": "string"
+            },
+            {
+              "id": "15801e1d-480b-45b5-80b9-3970223c5525",
+              "name": " eventType",
+              "value": "={{ $json.body.eventType }}",
+              "type": "string"
+            },
+            {
+              "id": "096412c8-0beb-471d-a46a-14f52e81b608",
+              "name": "body.signals.appCrashes",
+              "value": "={{ $json.body.signals.appCrashes }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        176,
+        0
+      ],
+      "id": "3c16a3c5-5f06-46bb-9ef5-ee35aa35f5ca",
+      "name": "prase_json"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "[\n  {\n    \"output\": {\n      \"summary\": \"This device, registered to <userPrincipalName_or_deviceName>, is experiencing <issue_description>.\",\n      \"recommendations\": [\n        {\n          \"issue\": \"<short_issue_name>\",\n          \"recommendation\": \"<actionable_step_to_remediate_issue>\"\n        }\n      ]\n    }\n  }\n]",
+        "autoFix": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        576,
+        208
+      ],
+      "id": "d4dc64ce-9561-4f65-8f3f-682e329f727e",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -32,
+        208
+      ],
+      "id": "1444edb0-0625-4ba2-a2d7-26587f40ff78",
+      "name": "When Executed by Another Workflow"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "prase_json",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "IT_Device_Health_Analyzer",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Structured Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IT_Device_Health_Analyzer": {
+      "main": [
+        [
+          {
+            "node": "open_ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "prase_json": {
+      "main": [
+        [
+          {
+            "node": "IT_Device_Health_Analyzer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "IT_Device_Health_Analyzer",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "prase_json",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "createdAt": "2025-08-28T09:51:15.916Z",
+  "updatedAt": "2025-09-10T12:54:35.392Z"
+}
