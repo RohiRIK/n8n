@@ -1,0 +1,556 @@
+{
+  "name": "Alert_System",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "a86d2c72-82a5-4c14-913e-1615c67c8cda",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -64,
+        416
+      ],
+      "id": "2272ffa6-2a10-465c-b051-7320a5525335",
+      "name": "Webhook",
+      "webhookId": "a86d2c72-82a5-4c14-913e-1615c67c8cda"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7b32cd0e-a526-4c2c-863b-dd9e932f9aa5",
+              "name": "recipients",
+              "value": "={{ $json.body.rule.notify.recipients }}",
+              "type": "array"
+            },
+            {
+              "id": "3cb79171-f2b5-43ea-b75f-dce70b02907b",
+              "name": "sendToOwners",
+              "value": "={{ $json.body.rule.notify.sendToOwners }}",
+              "type": "boolean"
+            },
+            {
+              "id": "6998f971-f723-4ba5-be03-c4fc2ef8f64f",
+              "name": "audience",
+              "value": "={{ $json.body.rule.notify.audience }}",
+              "type": "string"
+            },
+            {
+              "id": "b385026f-6239-4c83-99cd-abd6ce9b1881",
+              "name": "filtersOS",
+              "value": "={{ $json.body.rule.filters.os.include }}",
+              "type": "array"
+            },
+            {
+              "id": "60e2b096-6d21-4f63-9c34-e2616b51c72e",
+              "name": "affectedDevices",
+              "value": "={{ $json.body.affectedDevices }}",
+              "type": "array"
+            },
+            {
+              "id": "c6694122-1c0d-4e99-bbf5-b7c415d2bd0c",
+              "name": "ruleName",
+              "value": "={{ $json.body.event.ruleName }}",
+              "type": "string"
+            },
+            {
+              "id": "3f4b6532-d459-4810-bfc8-260c732ecbdd",
+              "name": "ruleId",
+              "value": "={{ $json.body.event.ruleId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1872,
+        -112
+      ],
+      "id": "a0f0dfbc-e551-4aa4-a325-2c86aefc1d90",
+      "name": "prase_json",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "5f2e2f82-e9f7-4f66-8b77-6b5aa0dcc104",
+              "leftValue": "={{ $json.sendToOwners }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1664,
+        -256
+      ],
+      "id": "43de3a27-b8e9-4bfb-9e42-4339a98a5ebe",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.user }}",
+        "subject": "=Alert Triggered: {{ $('If').item.json.ruleName }}",
+        "message": "=<!DOCTYPE html>\n<html>\n<head>\n<style>\n  body { \n    font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif; \n    line-height: 1.6; \n    color: #333; \n  }\n  .container { \n    width: 100%; \n    max-width: 600px; \n    margin: 20px auto; \n    padding: 20px; \n    border: 1px solid #ddd; \n    border-radius: 8px; \n  }\n  h2 { \n    color: #13C636; /* eToro green */\n  }\n  h3 {\n    border-bottom: 2px solid #13C636;\n    padding-bottom: 4px;\n    color: #333;\n  }\n  .details-box { \n    background-color: #f9f9f9; \n    border: 1px solid #eee; \n    padding: 15px; \n    margin-top: 20px; \n    border-radius: 5px; \n  }\n  .action-steps { \n    margin-top: 20px; \n  }\n  .action-steps ol { \n    padding-left: 20px; \n  }\n  .action-steps li { \n    margin-bottom: 10px; \n  }\n  .button { \n    display: inline-block; \n    background-color: #13C636; /* eToro green */\n    color: white; \n    padding: 12px 20px; \n    text-decoration: none; \n    border-radius: 5px; \n    font-weight: bold; \n  }\n</style>\n</head>\n<body>\n  <div class=\"container\">\n    <h2>Action Required for Your Device: {{ $json.deviceName }}</h2>\n    <p>Hello {{ $json.user }},</p>\n    <p>Our automated device health monitoring system has detected a potential issue with the device assigned to you. To ensure your device remains secure and performs optimally, we need your assistance.</p>\n    \n    <div class=\"details-box\">\n      <h4>Device Information</h4>\n      <ul>\n        <li><strong>Device Name:</strong> {{ $json.deviceName || 'N/A' }}</li>\n        <li><strong>Model:</strong> {{ $json.model || 'N/A' }}</li>\n        <li><strong>Operating System:</strong> {{ $json.operatingSystem || 'N/A' }}</li>\n      </ul>\n    </div>\n\n    <div class=\"action-steps\">\n      <h3>Next Steps</h3>\n      <ol>\n        <li><strong>Do not ignore this alert.</strong> A prompt response helps keep our network and your data secure.</li>\n        <li>Please contact the IT Help Desk at your earliest convenience to have your device inspected.</li>\n        <li>\n          You can <strong>open a support ticket</strong> directly by clicking the button below. Please include the device information above in your ticket description.\n        </li>\n      </ol>\n      <p style=\"text-align:center; margin-top:30px;\">\n        <a href=\"https://your-it-support-portal.com/new-ticket\" class=\"button\">Open IT Support Ticket</a>\n      </p>\n    </div>\n\n    <p>Thank you for your prompt attention to this matter.</p>\n    <p><strong>The eToro IT Security Team</strong></p>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -1120,
+        -352
+      ],
+      "id": "751bd4c2-0f21-4b6d-9244-5b3a5148f5db",
+      "name": "send_to_owner",
+      "webhookId": "9be62998-d489-498d-b7f4-6bca23a2b790",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "iwsmR7oYuPdo3kTl",
+          "name": "Gmail account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "affectedDevices",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -1424,
+        -352
+      ],
+      "id": "f221eae7-eae4-4bd4-a0d8-004751743235",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.recipients.join(',') }}",
+        "subject": "=Alert Triggered: {{ $json.ruleName }}",
+        "message": "=<!DOCTYPE html>\n<html>\n<head>\n<style>\n  body { \n    font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif; \n    line-height: 1.6; \n    color: #333; \n  }\n  .container { \n    width: 100%; \n    max-width: 800px; \n    margin: 20px auto; \n    padding: 20px; \n    border: 1px solid #ddd; \n    border-radius: 8px; \n  }\n  h2 { \n    color: #13C636; /* eToro green */\n  }\n  h3 {\n    border-bottom: 2px solid #13C636;\n    padding-bottom: 4px;\n    color: #333;\n  }\n  table { \n    width: 100%; \n    border-collapse: collapse; \n    margin-top: 20px; \n  }\n  th, td { \n    text-align: left; \n    padding: 12px; \n    border-bottom: 1px solid #eee; \n  }\n  th { \n    background-color: #f7f7f7; \n    color: #13C636; /* green header text */\n  }\n  tr:nth-child(even) { \n    background-color: #fbfbfb; \n  }\n  .summary-table td:first-child { \n    font-weight: bold; \n    width: 180px; \n  }\n  .badge { \n    background-color: #13C636; /* green badge */\n    color: white; \n    padding: 4px 8px; \n    border-radius: 4px; \n    font-size: 0.9em; \n  }\n</style>\n</head>\n<body>\n  <div class=\"container\">\n    <h2>Security Alert: {{ $json.ruleName }}</h2>\n    <p>This is an automated summary of a triggered security alert. Please review the details below.</p>\n    \n    <h3>Alert Details</h3>\n    <table class=\"summary-table\">\n      <tr>\n        <td>Rule Name:</td>\n        <td>{{ $json.ruleName }}</td>\n      </tr>\n      <tr>\n        <td>Rule ID:</td>\n        <td><code>{{ $json.ruleId }}</code></td>\n      </tr>\n      <tr>\n        <td>Alert Time:</td>\n        <td>{{ new Date($now).toLocaleString('en-IL', { timeZone: 'Asia/Jerusalem' }) }}</td>\n      </tr>\n      <tr>\n        <td>Total Devices Affected:</td>\n        <td><strong>{{ $json.affectedDevices.length }}</strong></td>\n      </tr>\n      <tr>\n        <td>Filters Applied:</td>\n        <td><span class=\"badge\">OS: {{ $json.filtersOS }}</span></td>\n      </tr>\n      <tr>\n        <td>Owner Notifications:</td>\n        <td>{{ $json.sendToOwners }}</td>\n      </tr>\n    </table>\n\n    <h3>Sample of Affected Devices (Top 15)</h3>\n    <table>\n      <thead>\n        <tr>\n          <th>Device Name</th>\n          <th>User</th>\n          <th>Operating System</th>\n          <th>Model</th>\n          <th>Score</th>\n        </tr>\n      </thead>\n      <tbody>\n      {{ \n        $json.affectedDevices.map(device => \n          `<tr>\n            <td>${device.deviceName || 'N/A'}</td>\n            <td>${device.user || 'N/A'}</td>\n            <td>${device.operatingSystem || 'N/A'}</td>\n            <td>${device.model || 'N/A'}</td>\n            <td>${device.currentScore}</td>\n          </tr>`\n        ).join('') \n      }}\n      </tbody>\n    </table>\n    <p><i>Note: This table shows at the all affected devices. A full report may be available in your monitoring dashboard.</i></p>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -1616,
+        -32
+      ],
+      "id": "7a2bd688-0b7e-442b-ae71-f6d0260fc3fa",
+      "name": "Send_to_support",
+      "webhookId": "9be62998-d489-498d-b7f4-6bca23a2b790",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "iwsmR7oYuPdo3kTl",
+          "name": "Gmail account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1f2e3d4-b5a6-4789-9abc-0d1e2f3a4b5c",
+              "leftValue": "={{ $json.healthEnabled }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        384,
+        480
+      ],
+      "id": "00c6ae94-4b23-4ceb-9c3f-d6d474080e10",
+      "name": "If Health AI"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f1e2d3c4-b5a6-47d8-9a0b-1c2d3e4f5a6b",
+              "name": "healthPayload",
+              "value": "={{ ({ ruleId: $json.ruleId, ruleName: $json.ruleName, metric: $json.rule.metric, scope: $json.rule.scope, windowDays: $json.rule.windowDays, condition: $json.rule.condition, metrics: { currentAvg: $json.metricsSummary.currentAvg, baselineAvg: $json.metricsSummary.baselineAvg, dropPercent: $json.metricsSummary.dropPercent, sampleSize: $json.metricsSummary.sampleSize }, affectedDevices: $json.affectedDevices || [], filters: $json.rule.filters || {}, environment: $json.body && $json.body.event ? $json.body.event.environment : undefined, conditionSummary: $json.body && $json.body.event ? $json.body.event.conditionSummary : undefined }) }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        736,
+        416
+      ],
+      "id": "87eb6bab-6540-4dfd-9a8c-c015bc86e5c0",
+      "name": "Build Health Payload"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7b32cd0e-a526-4c2c-863b-dd9e932f9aa5",
+              "name": "recipients",
+              "value": "={{ $json.body.rule.notify.recipients }}",
+              "type": "array"
+            },
+            {
+              "id": "3cb79171-f2b5-43ea-b75f-dce70b02907b",
+              "name": "sendToOwners",
+              "value": "={{ $json.body.rule.notify.sendToOwners }}",
+              "type": "boolean"
+            },
+            {
+              "id": "6998f971-f723-4ba5-be03-c4fc2ef8f64f",
+              "name": "audience",
+              "value": "={{ $json.body.rule.notify.audience }}",
+              "type": "string"
+            },
+            {
+              "id": "b385026f-6239-4c83-99cd-abd6ce9b1881",
+              "name": "filtersOS",
+              "value": "={{ $json.body.rule.filters.os.include }}",
+              "type": "array"
+            },
+            {
+              "id": "60e2b096-6d21-4f63-9c34-e2616b51c72e",
+              "name": "affectedDevices",
+              "value": "={{ $json.body.affectedDevices }}",
+              "type": "array"
+            },
+            {
+              "id": "c6694122-1c0d-4e99-bbf5-b7c415d2bd0c",
+              "name": "ruleName",
+              "value": "={{ $json.body.event.ruleName }}",
+              "type": "string"
+            },
+            {
+              "id": "3f4b6532-d459-4810-bfc8-260c732ecbdd",
+              "name": "ruleId",
+              "value": "={{ $json.body.event.ruleId }}",
+              "type": "string"
+            },
+            {
+              "id": "a6f4e3a1-9b7d-4a2c-b3d5-2e6f9a1c0c11",
+              "name": "healthEnabled",
+              "value": "={{ $json.headers && $json.headers['x-health-ai-enabled'] === 'true' }}",
+              "type": "boolean"
+            },
+            {
+              "id": "e0d2b3c4-5f6a-4789-9abc-12d3e4f5a6b7",
+              "name": "metricsSummary",
+              "value": "={{ $json.body.event.metricsSummary }}",
+              "type": "object"
+            },
+            {
+              "id": "b1c2d3e4-f5a6-47b8-9c0d-1e2f3a4b5c6d",
+              "name": "rule",
+              "value": "={{ $json.body.rule }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        416
+      ],
+      "id": "d0ac05af-d52a-473c-adbe-436584c00515",
+      "name": "prase_json1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "5f2e2f82-e9f7-4f66-8b77-6b5aa0dcc104",
+              "leftValue": "={{ $json.sendToOwners }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        368,
+        272
+      ],
+      "id": "d89f06e0-84db-4b8f-887b-cd7c22b77023",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.recipients.join(',') }}",
+        "subject": "=Alert Triggered: {{ $json.ruleName }}",
+        "message": "=<!DOCTYPE html>\n<html>\n<head>\n<style>\n  body { \n    font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif; \n    line-height: 1.6; \n    color: #333; \n  }\n  .container { \n    width: 100%; \n    max-width: 800px; \n    margin: 20px auto; \n    padding: 20px; \n    border: 1px solid #ddd; \n    border-radius: 8px; \n  }\n  h2 { \n    color: #13C636; /* eToro green */\n  }\n  h3 {\n    border-bottom: 2px solid #13C636;\n    padding-bottom: 4px;\n    color: #333;\n  }\n  table { \n    width: 100%; \n    border-collapse: collapse; \n    margin-top: 20px; \n  }\n  th, td { \n    text-align: left; \n    padding: 12px; \n    border-bottom: 1px solid #eee; \n  }\n  th { \n    background-color: #f7f7f7; \n    color: #13C636; /* green header text */\n  }\n  tr:nth-child(even) { \n    background-color: #fbfbfb; \n  }\n  .summary-table td:first-child { \n    font-weight: bold; \n    width: 180px; \n  }\n  .badge { \n    background-color: #13C636; /* green badge */\n    color: white; \n    padding: 4px 8px; \n    border-radius: 4px; \n    font-size: 0.9em; \n  }\n</style>\n</head>\n<body>\n  <div class=\"container\">\n    <h2>Security Alert: {{ $json.ruleName }}</h2>\n    <p>This is an automated summary of a triggered security alert. Please review the details below.</p>\n    \n    <h3>Alert Details</h3>\n    <table class=\"summary-table\">\n      <tr>\n        <td>Rule Name:</td>\n        <td>{{ $json.ruleName }}</td>\n      </tr>\n      <tr>\n        <td>Rule ID:</td>\n        <td><code>{{ $json.ruleId }}</code></td>\n      </tr>\n      <tr>\n        <td>Alert Time:</td>\n        <td>{{ new Date($now).toLocaleString('en-IL', { timeZone: 'Asia/Jerusalem' }) }}</td>\n      </tr>\n      <tr>\n        <td>Total Devices Affected:</td>\n        <td><strong>{{ $json.affectedDevices.length }}</strong></td>\n      </tr>\n      <tr>\n        <td>Filters Applied:</td>\n        <td><span class=\"badge\">OS: {{ $json.filtersOS }}</span></td>\n      </tr>\n      <tr>\n        <td>Owner Notifications:</td>\n        <td>{{ $json.sendToOwners }}</td>\n      </tr>\n    </table>\n\n    <h3>Sample of Affected Devices (Top 15)</h3>\n    <table>\n      <thead>\n        <tr>\n          <th>Device Name</th>\n          <th>User</th>\n          <th>Operating System</th>\n          <th>Model</th>\n          <th>Score</th>\n        </tr>\n      </thead>\n      <tbody>\n      {{ \n        $json.affectedDevices.map(device => \n          `<tr>\n            <td>${device.deviceName || 'N/A'}</td>\n            <td>${device.user || 'N/A'}</td>\n            <td>${device.operatingSystem || 'N/A'}</td>\n            <td>${device.model || 'N/A'}</td>\n            <td>${device.currentScore}</td>\n          </tr>`\n        ).join('') \n      }}\n      </tbody>\n    </table>\n    <p><i>Note: This table shows at the all affected devices. A full report may be available in your monitoring dashboard.</i></p>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        368,
+        672
+      ],
+      "id": "8669decf-fb00-4e60-bd97-ee45d8c2cac3",
+      "name": "Send_to_support1",
+      "webhookId": "9be62998-d489-498d-b7f4-6bca23a2b790",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "iwsmR7oYuPdo3kTl",
+          "name": "Gmail account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.user }}",
+        "subject": "=Alert Triggered: {{ $('If1').item.json.ruleName }}",
+        "message": "=<!DOCTYPE html>\n<html>\n<head>\n<style>\n  body { \n    font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif; \n    line-height: 1.6; \n    color: #333; \n  }\n  .container { \n    width: 100%; \n    max-width: 600px; \n    margin: 20px auto; \n    padding: 20px; \n    border: 1px solid #ddd; \n    border-radius: 8px; \n  }\n  h2 { \n    color: #13C636; /* eToro green */\n  }\n  h3 {\n    border-bottom: 2px solid #13C636;\n    padding-bottom: 4px;\n    color: #333;\n  }\n  .details-box { \n    background-color: #f9f9f9; \n    border: 1px solid #eee; \n    padding: 15px; \n    margin-top: 20px; \n    border-radius: 5px; \n  }\n  .action-steps { \n    margin-top: 20px; \n  }\n  .action-steps ol { \n    padding-left: 20px; \n  }\n  .action-steps li { \n    margin-bottom: 10px; \n  }\n  .button { \n    display: inline-block; \n    background-color: #13C636; /* eToro green */\n    color: white; \n    padding: 12px 20px; \n    text-decoration: none; \n    border-radius: 5px; \n    font-weight: bold; \n  }\n</style>\n</head>\n<body>\n  <div class=\"container\">\n    <h2>Action Required for Your Device: {{ $json.deviceName }}</h2>\n    <p>Hello {{ $json.user }},</p>\n    <p>Our automated device health monitoring system has detected a potential issue with the device assigned to you. To ensure your device remains secure and performs optimally, we need your assistance.</p>\n    \n    <div class=\"details-box\">\n      <h4>Device Information</h4>\n      <ul>\n        <li><strong>Device Name:</strong> {{ $json.deviceName || 'N/A' }}</li>\n        <li><strong>Model:</strong> {{ $json.model || 'N/A' }}</li>\n        <li><strong>Operating System:</strong> {{ $json.operatingSystem || 'N/A' }}</li>\n      </ul>\n    </div>\n\n    <div class=\"action-steps\">\n      <h3>Next Steps</h3>\n      <ol>\n        <li><strong>Do not ignore this alert.</strong> A prompt response helps keep our network and your data secure.</li>\n        <li>Please contact the IT Help Desk at your earliest convenience to have your device inspected.</li>\n        <li>\n          You can <strong>open a support ticket</strong> directly by clicking the button below. Please include the device information above in your ticket description.\n        </li>\n      </ol>\n      <p style=\"text-align:center; margin-top:30px;\">\n        <a href=\"https://your-it-support-portal.com/new-ticket\" class=\"button\">Open IT Support Ticket</a>\n      </p>\n    </div>\n\n    <p>Thank you for your prompt attention to this matter.</p>\n    <p><strong>The eToro IT Security Team</strong></p>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        928,
+        176
+      ],
+      "id": "631d052e-3df7-4162-adf8-ff8fdba3ba55",
+      "name": "send_to_owner1",
+      "webhookId": "9be62998-d489-498d-b7f4-6bca23a2b790",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "iwsmR7oYuPdo3kTl",
+          "name": "Gmail account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "affectedDevices",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        624,
+        176
+      ],
+      "id": "9120480f-5060-4f32-ad30-5ceeda4b05a0",
+      "name": "Split Out1"
+    },
+    {
+      "parameters": {
+        "operation": "activate",
+        "workflowId": {
+          "__rl": true,
+          "value": "vbBUBGrZKfKNYzOm",
+          "mode": "list",
+          "cachedResultName": "Alert_System (#vbBUBGrZKfKNYzOm)"
+        },
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [
+        944,
+        416
+      ],
+      "id": "7452b04a-cb26-4c8b-bf96-c4a03c9f6f10",
+      "name": "activate_Open_Ticket",
+      "credentials": {
+        "n8nApi": {
+          "id": "lN8WqXdTmoLt6Eap",
+          "name": "n8n account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "prase_json1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "prase_json": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send_to_support",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "send_to_owner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Health AI": {
+      "main": [
+        [
+          {
+            "node": "Build Health Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "prase_json1": {
+      "main": [
+        [
+          {
+            "node": "Send_to_support1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If Health AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Split Out1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out1": {
+      "main": [
+        [
+          {
+            "node": "send_to_owner1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Health Payload": {
+      "main": [
+        [
+          {
+            "node": "activate_Open_Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "createdAt": "2025-08-21T12:25:45.567Z",
+  "updatedAt": "2025-09-10T12:54:36.158Z"
+}
