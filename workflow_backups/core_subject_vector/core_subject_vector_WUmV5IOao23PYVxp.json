@@ -1,0 +1,331 @@
+{
+  "name": "core_subject_vector",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -496,
+        192
+      ],
+      "id": "6be52cb9-a6af-493e-877e-6eec7df046e4",
+      "name": "When chat message received",
+      "webhookId": "bc8f9f8b-d36b-47d3-a18e-89b356893c2b"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "Core_subject"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -272,
+        -128
+      ],
+      "id": "f4ef2f4d-cecd-4632-a8cb-e5d68452172c",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "mode": "load",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "coresubject",
+          "mode": "list",
+          "cachedResultName": "coresubject"
+        },
+        "prompt": "=```markdown\nYou are an expert Semantic Search Engine. Your function is to receive a core subject and find the most semantically related subjects from your knowledge base.\n\n### **CONTEXT**\n\nYou are performing a semantic search to find concepts, topics, or documents that are closely related in meaning to a user-provided subject. The similarity should be based on the underlying meaning and context, not just keyword matching.\n\n### **TASK**\n\nYour task is to analyze the `core_subject` and identify up to 5 subjects from your database that are most semantically similar.\n\n### **INPUT**\n\nYou will be provided with a single `core_subject`.\n* **Core Subject:** `{{ $json.chatInput }}`\n\n---\n\n### **INSTRUCTIONS**\n\n1.  **Analyze the Core Subject:** First, break down the `core_subject` to understand its primary meaning, key concepts, and context.\n2.  **Perform Semantic Search:** Search your knowledge base for subjects that are conceptually similar.\n3.  **Calculate Similarity:** For each potential match, determine its semantic similarity score (a value between 0.0 for completely dissimilar and 1.0 for identical).\n4.  **Rank and Select:** Rank the results by their similarity score in descending order. Return the top 5 results. If fewer than 5 relevant subjects are found, return only those that have a high degree of similarity.\n\n---\n\n### **OUTPUT REQUIREMENTS**\n\n* The output **MUST** be a JSON array of objects.\n* Each object in the array represents a similar subject and **MUST** contain two keys:\n    1.  `subject`: The name of the similar subject found.\n    2.  `similarity_score`: A float representing the calculated semantic similarity (e.g., `0.87`).\n* The list must be sorted by `similarity_score` from highest to lowest.\n\n---\n\n### **EXAMPLE**\n\n**INPUT:**\n* **Core Subject:** `\"The long-term effects of coffee consumption on human health\"`\n\n**OUTPUT:**\n```json\n[\n  {\n    \"subject\": \"Caffeine's impact on cardiovascular disease\",\n    \"similarity_score\": 0.91\n  },\n  {\n    \"subject\": \"Antioxidant properties of coffee beans\",\n    \"similarity_score\": 0.88\n  },\n  {\n    \"subject\": \"Correlation between stimulants and sleep patterns\",\n    \"similarity_score\": 0.85\n  },\n  {\n    \"subject\": \"Metabolic responses to daily caffeine intake\",\n    \"similarity_score\": 0.84\n  },\n  {\n    \"subject\": \"Tea consumption vs. coffee consumption health benefits\",\n    \"similarity_score\": 0.79\n  }\n]",
+        "includeDocumentMetadata": false,
+        "options": {
+          "pineconeNamespace": "core_subject"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        320,
+        -304
+      ],
+      "id": "e71fbdfe-d199-4b85-9ea5-08d8b5a20d69",
+      "name": "Pinecone Vector Store2",
+      "alwaysOutputData": true,
+      "credentials": {
+        "pineconeApi": {
+          "id": "rBmzQ7idx8eaiPX4",
+          "name": "PineconeApi account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        240,
+        -96
+      ],
+      "id": "1fb66f81-7325-4b57-aa34-f9d4f3793427",
+      "name": "Embeddings Google Gemini1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "WdOCetfAcE7xCi4x",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "coresubject",
+          "mode": "list",
+          "cachedResultName": "coresubject"
+        },
+        "options": {
+          "clearNamespace": false,
+          "pineconeNamespace": "core_subject"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        512,
+        208
+      ],
+      "id": "ca2ee551-1e40-42cd-9eef-5e31903aacea",
+      "name": "Pinecone Vector Store",
+      "credentials": {
+        "pineconeApi": {
+          "id": "rBmzQ7idx8eaiPX4",
+          "name": "PineconeApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "embed-multilingual-v2.0"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+      "typeVersion": 1,
+      "position": [
+        416,
+        432
+      ],
+      "id": "c009259d-4355-4d6a-8a77-57745e9f0a2c",
+      "name": "Embeddings Cohere",
+      "credentials": {
+        "cohereApi": {
+          "id": "HfOlRx0KzyyjXTcI",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        640,
+        416
+      ],
+      "id": "a1a6d842-5e9a-44b3-9a54-e6190fe1ac3a",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=\n\nAnalyze the following message and extract the main subject, description, related topics, intent, entities, and context.\nMessage: “{{ $json.chatInput }}”",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are an advanced data extraction assistant. For every user message, analyze the text and extract the following fields:\n • “subject”: The main topic of the message.\n • “description”: A concise summary of the subject.\n • “related_topics”: A list of related or supporting topics.\n • “intent”: The user’s goal or question.\n • “entities”: All named entities (people, organizations, places, dates, etc.).\n • “context”: Relevant previous messages or workflow context.\n\nReturn only a well-formatted JSON object with these fields. If a field is not relevant, leave it empty or as an empty array."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.1,
+      "position": [
+        -256,
+        208
+      ],
+      "id": "963489c0-ec9b-4afc-9191-479f38b76ca7",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"subject\": \"The main topic of the message\",\n  \"description\": \"A short description of the subject and its significance\",\n  \"related_topics\": [\n    \"Related topic 1\",\n    \"Related topic 2\"\n  ],\n  \"intent\": \"What the user wants or is asking about\",\n  \"entities\": [\n    \"Identified entity 1\",\n    \"Identified entity 2\"\n  ],\n  \"context\": \"Relevant context from the conversation or system\"\n}\n",
+        "autoFix": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -208,
+        480
+      ],
+      "id": "ebffce98-054d-4dae-8a9b-07c18d9bef2a",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -416,
+        512
+      ],
+      "id": "eb646fd1-af2f-4338-b883-0059d858cb84",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "WdOCetfAcE7xCi4x",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "output",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        208
+      ],
+      "id": "79fb7734-9a24-48d2-84ba-cb209416cfcd",
+      "name": "Convert to File"
+    }
+  ],
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Pinecone Vector Store2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Pinecone Vector Store2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store2",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone Vector Store": {
+      "main": [
+        []
+      ]
+    },
+    "Embeddings Cohere": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Structured Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "createdAt": "2025-07-26T14:17:12.364Z",
+  "updatedAt": "2025-07-30T13:45:36.549Z"
+}
