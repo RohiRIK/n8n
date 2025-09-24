@@ -1,0 +1,381 @@
+{
+  "name": "notion_expens_months_and_years_loop",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyX",
+              "value": 15,
+              "unit": "minutes"
+            }
+          ]
+        },
+        "databaseId": {
+          "__rl": true,
+          "value": "4ae63aaa-014f-4b3b-b350-09a62a0c71b4",
+          "mode": "list",
+          "cachedResultName": "Expenses  (Expense Tracker 2.0) ",
+          "cachedResultUrl": "https://www.notion.so/4ae63aaa014f4b3bb35009a62a0c71b4"
+        }
+      },
+      "type": "n8n-nodes-base.notionTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1140,
+        -300
+      ],
+      "id": "ad5d5208-25f1-471e-a511-d7e22c347a2e",
+      "name": "Notion Trigger1",
+      "credentials": {
+        "notionApi": {
+          "id": "Vpza7HmATHumPcuq",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.expense_ID }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Month|relation",
+              "relationValue": [
+                "={{ $json.Month_ID }}"
+              ]
+            },
+            {
+              "key": "Year|relation",
+              "relationValue": [
+                "={{ $json.Year_id }}"
+              ]
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        1240,
+        -420
+      ],
+      "id": "edf7509b-08ff-49f4-a7c5-34e672ed7b24",
+      "name": "Update_expnese1",
+      "credentials": {
+        "notionApi": {
+          "id": "Vpza7HmATHumPcuq",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Define an array of items to return\nconst items = [\n  { json: { message: \"The properties are already fully filled. Stop and exit.\" } }\n];\n\n// Return the array\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        300,
+        -880
+      ],
+      "id": "60ac9bad-3a0c-487e-a70f-4cd0514a2c3a",
+      "name": "Code4"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "72ff34b9-48f5-4217-b169-1337c00e5068",
+              "name": "expense_ID",
+              "value": "={{ $('Loop Over Items').first().json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "758eab78-a2a2-463e-8730-0ed43d225858",
+              "name": "Year_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "8d40a3cc-ae9f-44c2-9714-19c294c77612",
+              "name": "Month_ID",
+              "value": "={{ $('get_months_id').first().json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        940,
+        -420
+      ],
+      "id": "66f7103d-c415-4fe8-bf4d-b5f824492271",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "4ae63aaa014f4b3bb35009a62a0c71b4",
+          "mode": "id"
+        },
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Year|relation",
+              "condition": "is_empty"
+            },
+            {
+              "key": "Month|relation",
+              "condition": "is_empty"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -820,
+        -320
+      ],
+      "id": "64408503-833e-426c-ab0b-70db9d3aa888",
+      "name": "Get_expense_withoht_month&year",
+      "credentials": {
+        "notionApi": {
+          "id": "Vpza7HmATHumPcuq",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -420,
+        -400
+      ],
+      "id": "72b333e9-a4db-4744-acb6-030549edbca5",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate the current date in ISO format (without time)\nconst currentDate = new Date().toISOString().split('T')[0];\n\n// Get the month name and year (year as string)\nconst monthNames = [\"January\", \"February\", \"March\", \"April\", \"May\", \"June\", \"July\", \"August\", \"September\", \"October\", \"November\", \"December\"];\nconst monthName = monthNames[new Date().getMonth()];\nconst year = new Date().getFullYear().toString(); // Convert year to string\n\n// Return the result as an array of objects\nreturn [{ json: { currentDate, monthName, year } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        -440
+      ],
+      "id": "121e7746-2e6f-47ac-b05f-36dba1cb0cbe",
+      "name": "get_currnet_year&month"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "11457807-b1e7-8098-a696-c80f0dc52a04",
+          "mode": "list",
+          "cachedResultName": "Years",
+          "cachedResultUrl": "https://www.notion.so/11457807b1e78098a696c80f0dc52a04"
+        },
+        "limit": 1,
+        "simple": "",
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Name|title",
+              "condition": "equals",
+              "titleValue": "={{ $('get_currnet_year&month').item.json.year }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        -420
+      ],
+      "id": "8b0aac39-fc50-4a69-ac36-5d27496f4907",
+      "name": "get_year_id",
+      "alwaysOutputData": true,
+      "credentials": {
+        "notionApi": {
+          "id": "Vpza7HmATHumPcuq",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "11457807-b1e7-80b2-97f9-d20e2a649e0b",
+          "mode": "list",
+          "cachedResultName": "Months",
+          "cachedResultUrl": "https://www.notion.so/11457807b1e780b297f9d20e2a649e0b"
+        },
+        "limit": 1,
+        "simple": "",
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Name|title",
+              "condition": "equals",
+              "titleValue": "={{ $json.monthName }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        380,
+        -440
+      ],
+      "id": "1154a9ac-d831-47e5-ba21-43b4e0e65304",
+      "name": "get_months_id",
+      "alwaysOutputData": true,
+      "credentials": {
+        "notionApi": {
+          "id": "Vpza7HmATHumPcuq",
+          "name": "Notion account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Notion Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Get_expense_withoht_month&year",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update_expnese1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Update_expnese1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get_expense_withoht_month&year": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Code4",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "get_currnet_year&month",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_currnet_year&month": {
+      "main": [
+        [
+          {
+            "node": "get_months_id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_year_id": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_months_id": {
+      "main": [
+        [
+          {
+            "node": "get_year_id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "createdAt": "2025-03-28T08:48:21.459Z",
+  "updatedAt": "2025-06-19T12:09:02.390Z"
+}
