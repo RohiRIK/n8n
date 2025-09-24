@@ -1,0 +1,497 @@
+{
+  "name": "web_clips_process",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1220,
+        2480
+      ],
+      "id": "f2049dce-3a47-4fe2-b2af-99eb5499dd56",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "7028e9dd-da8a-483b-b3f7-e3fecbafb8b5",
+          "mode": "list",
+          "cachedResultName": "Notes Database",
+          "cachedResultUrl": "https://www.notion.so/7028e9ddda8a483bb3f7e3fecbafb8b5"
+        },
+        "limit": 1,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Reference|url",
+              "condition": "is_not_empty"
+            },
+            {
+              "key": "TLDR|rich_text",
+              "condition": "is_empty"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -860,
+        2620
+      ],
+      "id": "e1ff721a-0d21-40a6-93c9-9858d7b250bc",
+      "name": "Notion",
+      "credentials": {
+        "notionApi": {
+          "id": "Vpza7HmATHumPcuq",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "23d4b703-987e-45aa-9695-82a9a7573293",
+              "name": "id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "97e6e3a9-3585-4bbc-a4a1-0c76f065a765",
+              "name": "topic",
+              "value": "={{ $json.property_topics }}",
+              "type": "array"
+            },
+            {
+              "id": "f56daf5b-2ef6-4257-9241-fbb977802bf9",
+              "name": "tldr",
+              "value": "={{ $json.property_tldr }}",
+              "type": "string"
+            },
+            {
+              "id": "ee163db7-6df4-4563-b9ff-4d22a0097550",
+              "name": "Url",
+              "value": "={{ $json.property_reference }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -580,
+        2620
+      ],
+      "id": "ff7ccd20-208a-4f7b-a453-485c7579f6fe",
+      "name": "Format_propertites"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.data.markdown }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "# IDENTITY and PURPOSE\n\nYou are an expert content summarizer. You take content in and output a Markdown formatted summary using the format below.\n\nTake a deep breath and think step by step about how to best accomplish this goal using the following steps.\n\n# OUTPUT SECTIONS\n\n- Combine all of your understanding of the content into a single, 20-word sentence in a section called ONE SENTENCE SUMMARY:.\n\n- Output the 10 most important points of the content as a list with no more than 16 words per point into a section called MAIN POINTS:.\n\n- Output a list of the 5 best takeaways from the content in a section called TAKEAWAYS:.\n\n# OUTPUT INSTRUCTIONS\n\n- Create the output using the formatting above.\n- You only output human readable Markdown.\n- Output numbered lists, not bullets.\n- Do not output warnings or notes—just the requested sections.\n- Do not repeat items in the output sections.\n- Do not start items with the same opening words."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        260,
+        2620
+      ],
+      "id": "557ae7db-3533-429a-ac86-7ab1e2af9dff",
+      "name": "AI_article_summarise"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Please ignore all previous instructions. Please respond only in the English language. Do not explain what you are doing. Do not self reference. You are an expert text analyst and researcher. Please extract and name the topic and keywords from the text I provide, it shud be no more then 3 words. Please present the results in a json with name of topic an keywords. Pleas output only the values.\nHere is the text: \"{{ $json.output }}\"",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        1220,
+        2620
+      ],
+      "id": "bba3b4ed-f21d-4976-ac16-5017724636ca",
+      "name": "AI_Topic_Extraction"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        840,
+        2620
+      ],
+      "id": "363231d4-3306-4f65-97c2-675506479541",
+      "name": "Wait",
+      "webhookId": "a4e746c9-581b-45dd-a472-e0e9b62a3e17"
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        1140,
+        2980
+      ],
+      "id": "dcd262de-19af-49cb-a8bb-47fef5653dc7",
+      "name": "Ollama Chat Model1",
+      "credentials": {
+        "ollamaApi": {
+          "id": "LprBiyyLSqKEHJGl",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9af2b7f1-67f4-4b26-affb-c5fd9a3bf311",
+              "name": "AI_Topic_Extraction 1 item",
+              "value": "={{ $json.Topic }}",
+              "type": "string"
+            },
+            {
+              "id": "093c6e19-8a66-448b-bf0b-36c5c23324b2",
+              "name": "AI_article_summarise",
+              "value": "={{ $('AI_article_summarise').item.json.output }}",
+              "type": "string"
+            },
+            {
+              "id": "8a3b87d1-f4d9-494f-8031-b7b7a981802d",
+              "name": "keywords 1",
+              "value": "={{ $json.Keywords[0] }}",
+              "type": "string"
+            },
+            {
+              "id": "cff30180-ea01-42c3-a093-19a83bb21a7d",
+              "name": "keywords 2",
+              "value": "={{ $json.Keywords[1] }}",
+              "type": "string"
+            },
+            {
+              "id": "f28fce03-2c91-411e-bce1-0a8da8a8b67c",
+              "name": "Keywords 3",
+              "value": "={{ $json.Keywords[2] }}",
+              "type": "string"
+            },
+            {
+              "id": "16396ab2-2dd6-42f3-992e-4244ff9bebfe",
+              "name": "Page to update ID",
+              "value": "={{ $('Notion').item.json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2200,
+        2620
+      ],
+      "id": "3e0cb7e8-b787-458d-98ec-7009be879871",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "import json\n\nresults = []\n\nfor item in items:\n    raw_data = item.get('json', {}).get('output')\n\n    if not raw_data or not raw_data.strip():\n        results.append({'json': {'error': 'Data is undefined, empty, or whitespace only'}})\n        continue\n\n    try:\n        json_data = json.loads(raw_data)\n\n        # Normalize keys to lowercase\n        normalized_data = {k.lower(): v for k, v in json_data.items()}\n\n        topic = normalized_data.get('topic')\n        keywords = normalized_data.get('keywords')\n\n        result_entry = {}\n\n        if topic:\n            result_entry['Topic'] = topic\n        else:\n            result_entry['Topic'] = 'Topic not found'\n\n        if isinstance(keywords, list):\n            result_entry['Keywords'] = keywords\n        else:\n            result_entry['Keywords'] = ['Keywords not found or not a list']\n\n        results.append({'json': result_entry})\n\n    except json.JSONDecodeError as e:\n        results.append({'json': {'error': f'JSON decode error: {str(e)}'}})\n    except Exception as e:\n        results.append({'json': {'error': f'Unexpected error: {str(e)}'}})\n\nreturn results"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1780,
+        2620
+      ],
+      "id": "4d552f80-3f2f-469b-b2cc-7b019e3692e9",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 20-23 * * * "
+            },
+            {
+              "field": "cronExpression",
+              "expression": "0 0-8 * * * "
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1240,
+        2700
+      ],
+      "id": "85f06d06-259b-4075-ac1e-fac7eae90653",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        280,
+        2960
+      ],
+      "id": "f9808dce-465b-4c70-8f09-afbdfac60fa2",
+      "name": "llama3.2",
+      "credentials": {
+        "ollamaApi": {
+          "id": "LprBiyyLSqKEHJGl",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://firecrawl.rohi.life/v1/scrape",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"url\": \"{{ $json.Url }}\",\n  \"formats\": [\n    \"markdown\"\n  ]\n} ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -240,
+        2620
+      ],
+      "id": "11afc931-8d69-4c46-bef5-6c2d2a25ce13",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "eFwntbjfFyKCMtKV",
+          "name": "Firecrawl"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json['Page to update ID'] }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "TLDR|rich_text",
+              "textContent": "={{ $json.AI_article_summarise }}"
+            },
+            {
+              "key": "Topics|multi_select",
+              "multiSelectValue": "={{ [\n    $json['AI_Topic_Extraction 1 item'],\n    $json['keywords 1'],\n    $json['keywords 2'],\n    $json['Keywords 3']\n].filter(value => value).join(', ') }}"
+            },
+            {
+              "key": "Status|status",
+              "statusValue": "Processed"
+            },
+            {
+              "key": "Type|select",
+              "selectValue": "Web Clip"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        2760,
+        2620
+      ],
+      "id": "d74bb89d-ccb1-46b9-bb2e-6861ef336181",
+      "name": "Update a database page",
+      "credentials": {
+        "notionApi": {
+          "id": "Vpza7HmATHumPcuq",
+          "name": "Notion account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Notion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion": {
+      "main": [
+        [
+          {
+            "node": "Format_propertites",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format_propertites": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI_article_summarise": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "AI_Topic_Extraction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI_Topic_Extraction",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI_Topic_Extraction": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Update a database page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Notion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "llama3.2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI_article_summarise",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "AI_article_summarise",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Jerusalem",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "createdAt": "2025-05-03T16:19:07.475Z",
+  "updatedAt": "2025-07-12T09:54:25.651Z"
+}
