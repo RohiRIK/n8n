@@ -1,5 +1,5 @@
 {
-  "name": "backup_flow_to_github",
+  "name": "backup_flow_to_homelab_rpo",
   "nodes": [
     {
       "parameters": {
@@ -11,7 +11,7 @@
           ]
         }
       },
-      "id": "f4bf8ceb-17c1-4cd2-9800-b90d1fc82a73",
+      "id": "880b1307-5173-4a4b-b728-7db5dc8dda07",
       "name": "Every 15 minutes",
       "type": "n8n-nodes-base.scheduleTrigger",
       "position": [
@@ -27,7 +27,7 @@
         },
         "requestOptions": {}
       },
-      "id": "ff6fb537-583f-483d-be42-eec17480565f",
+      "id": "c20b8b8b-d074-465b-9aa6-6bcf35fa06ce",
       "name": "Get all workflows with tag",
       "type": "n8n-nodes-base.n8n",
       "position": [
@@ -98,7 +98,7 @@
         },
         "options": {}
       },
-      "id": "f376e179-d892-4cf5-bff2-f959e80b91ef",
+      "id": "67b25511-c117-4d8e-ab54-261276da86fc",
       "name": "work flow settings",
       "type": "n8n-nodes-base.set",
       "position": [
@@ -163,7 +163,7 @@
         1488,
         784
       ],
-      "id": "fdc3924e-4ee4-4aee-bd20-5e1d22596091",
+      "id": "4cd5ca28-e693-4abf-9857-54bcea9272bc",
       "name": "workflow_json"
     },
     {
@@ -178,12 +178,12 @@
         },
         "repository": {
           "__rl": true,
-          "value": "CloudJourneyBlog",
+          "value": "n8n",
           "mode": "list",
-          "cachedResultName": "CloudJourneyBlog",
-          "cachedResultUrl": "https://github.com/RohiRIK/CloudJourneyBlog"
+          "cachedResultName": "n8n",
+          "cachedResultUrl": "https://github.com/RohiRIK/n8n"
         },
-        "filePath": "=projects/n8n-workflows/workflow_backups/{{$('work flow settings').item.json.name}}/{{$('work flow settings').item.json.name}}_{{ $('work flow settings').item.json.id }}.json",
+        "filePath": "=workflow_backups/{{$('work flow settings').item.json.name}}/{{$('work flow settings').item.json.name}}_{{ $('work flow settings').item.json.id }}.json",
         "fileContent": "={{ JSON.stringify($('workflow_json').item.json, null, 2) }}",
         "commitMessage": "=chore: backup n8n automation flow to GitHub {{$('work flow settings').item.json.name}}_{{ $('work flow settings').item.json.id }} to GitHub."
       },
@@ -193,13 +193,13 @@
         2016,
         976
       ],
-      "id": "41abe8f3-ffcc-4f20-852d-4a446d7fe1f3",
+      "id": "67ae1c3d-530c-4fa2-b6d6-548bdc903959",
       "name": "Crate_Json",
-      "webhookId": "97d0129f-6c17-4e22-88bc-508b7a1a4085",
+      "webhookId": "69b0e6ed-2c3e-4f91-b692-15e070ffcf22",
       "credentials": {
         "githubApi": {
           "id": "qSEsRGukJ4kS0Wum",
-          "name": "GitHub account"
+          "name": "Github-workflow-backupo_flow"
         }
       }
     },
@@ -229,7 +229,7 @@
         2128,
         688
       ],
-      "id": "536abf51-e901-4bae-be65-48afa9db6bd6",
+      "id": "0bb5e75c-86bc-4b4b-aa3a-7cfd0a2dd78b",
       "name": "jsons_to_compress"
     },
     {
@@ -243,7 +243,7 @@
         1904,
         688
       ],
-      "id": "5937f224-0c51-4c73-8398-c4f69e446d0a",
+      "id": "3ac12560-7b63-48a4-8027-a0a034784d5d",
       "name": "Extract_json_form_github_file"
     },
     {
@@ -256,7 +256,7 @@
         2352,
         688
       ],
-      "id": "86f6fe18-e7fb-43bd-8a6e-933beedeec0f",
+      "id": "f7db88a1-4fcc-422c-8cb4-f0944596c4d5",
       "name": "Code"
     },
     {
@@ -291,7 +291,7 @@
         2560,
         688
       ],
-      "id": "5bbfac4a-3dd1-43f0-910a-f70e651b731c",
+      "id": "6998a63b-0180-4b4d-b98c-4fd8a6349190",
       "name": "If"
     },
     {
@@ -302,9 +302,9 @@
         800,
         1088
       ],
-      "id": "0b775873-48aa-4c53-b4a4-f72c391613b7",
+      "id": "ccb9d72c-126e-4150-a6b8-a17da0d9e828",
       "name": "Wait",
-      "webhookId": "98dcab77-e8be-498c-ab49-4c2a526b1853"
+      "webhookId": "0ee2cdb8-2497-4740-8fbc-ced236b3210e"
     },
     {
       "parameters": {
@@ -334,13 +334,13 @@
         2816,
         608
       ],
-      "id": "44fd5663-a7db-483f-b67d-17705ef6edc8",
+      "id": "cfbbb0b6-a796-4afe-b861-c8b8ad34dab2",
       "name": "Edit a file",
-      "webhookId": "e6cd4445-ba05-4e4d-ab7e-c17bc0258862",
+      "webhookId": "fc5f60af-1d8c-4698-acd6-55efa8ab4e97",
       "credentials": {
         "githubApi": {
           "id": "qSEsRGukJ4kS0Wum",
-          "name": "GitHub account"
+          "name": "Github-workflow-backupo_flow"
         }
       }
     },
@@ -357,12 +357,10 @@
         },
         "repository": {
           "__rl": true,
-          "value": "CloudJourneyBlog",
           "mode": "list",
-          "cachedResultName": "CloudJourneyBlog",
-          "cachedResultUrl": "https://github.com/RohiRIK/CloudJourneyBlog"
+          "value": ""
         },
-        "filePath": "=projects/n8n-workflows/workflow_backups/{{$('work flow settings').item.json.name}}/{{$('work flow settings').item.json.name}}_{{ $('work flow settings').item.json.id }}.json",
+        "filePath": "=workflow_backups/{{$('work flow settings').item.json.name}}/{{$('work flow settings').item.json.name}}_{{ $('work flow settings').item.json.id }}.json",
         "additionalParameters": {}
       },
       "type": "n8n-nodes-base.github",
@@ -371,14 +369,14 @@
         1680,
         784
       ],
-      "id": "c1e9e0fa-696d-4464-9498-b7d6ab0babca",
+      "id": "bf369934-62e5-4aa2-b9a9-673ead45b91e",
       "name": "check_exsits_in_github",
-      "webhookId": "76106c41-01a3-431c-9bcf-9620f8bc2a6b",
+      "webhookId": "28223a01-f67b-4d05-aac3-104a82b3731b",
       "alwaysOutputData": true,
       "credentials": {
         "githubApi": {
           "id": "qSEsRGukJ4kS0Wum",
-          "name": "GitHub account"
+          "name": "Github-workflow-backupo_flow"
         }
       },
       "onError": "continueErrorOutput"
@@ -514,8 +512,8 @@
       ]
     }
   },
-  "active": true,
+  "active": false,
   "settings": {},
-  "createdAt": "2025-06-15T13:36:45.752Z",
-  "updatedAt": "2025-07-18T12:04:27.030Z"
+  "createdAt": "2025-10-04T13:50:14.309Z",
+  "updatedAt": "2025-10-04T13:57:51.194Z"
 }

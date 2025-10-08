@@ -655,7 +655,7 @@
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 2.2,
       "position": [
-        832,
+        800,
         1104
       ],
       "id": "b5a58a74-bc8b-436c-ab31-2bd8840666b9",
@@ -673,8 +673,8 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2,
       "position": [
-        416,
-        880
+        688,
+        816
       ],
       "id": "67e99d0a-b1a2-46cf-927a-069fb789af44",
       "name": "AI_Agent_Publisher"
@@ -721,7 +721,18 @@
           "mappingMode": "defineBelow",
           "value": {},
           "matchingColumns": [],
-          "schema": [],
+          "schema": [
+            {
+              "id": "Core_subject",
+              "displayName": "Core_subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
           "attemptToConvertTypes": false,
           "convertFieldsToString": true
         },
@@ -733,8 +744,8 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        1216,
-        640
+        1280,
+        560
       ],
       "id": "180f7372-1cf3-424b-9f57-e38183cba7e0",
       "name": "Execute Workflow1"
@@ -1051,5 +1062,5 @@
     "executionOrder": "v1"
   },
   "createdAt": "2025-07-27T12:08:41.470Z",
-  "updatedAt": "2025-07-27T14:41:03.279Z"
+  "updatedAt": "2025-07-30T14:08:17.689Z"
 }

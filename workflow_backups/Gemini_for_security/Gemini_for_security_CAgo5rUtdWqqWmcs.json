@@ -7,7 +7,7 @@
       "typeVersion": 1,
       "position": [
         0,
-        -70
+        -64
       ],
       "id": "0c53adcd-3eab-4592-a785-e72a665aa511",
       "name": "When clicking ‘Execute workflow’"
@@ -22,8 +22,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        220,
-        -70
+        352,
+        -64
       ],
       "id": "a9471d46-287d-47f4-8b9a-8f47c38e9b8f",
       "name": "HTTP Request",
@@ -41,8 +41,8 @@
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        660,
-        -70
+        880,
+        -64
       ],
       "id": "187a3c22-0873-4574-921c-809372caea6c",
       "name": "Loop Over Items"
@@ -54,8 +54,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
       "position": [
-        1060,
-        500
+        960,
+        496
       ],
       "id": "e1377435-0da5-4848-989b-43e455d2f6d6",
       "name": "Google Gemini Chat Model1",
@@ -74,8 +74,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
       "typeVersion": 1,
       "position": [
-        880,
-        300
+        160,
+        304
       ],
       "id": "d765799a-3b31-41b6-b2f0-eaee512af139",
       "name": "Ollama Chat Model",
@@ -96,8 +96,8 @@
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.3,
       "position": [
-        1240,
-        302.5
+        1520,
+        368
       ],
       "id": "4557c7ae-974b-40b0-b4a2-a078425b70c2",
       "name": "Structured Output Parser"
@@ -116,8 +116,8 @@
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
       "position": [
-        1000,
-        300
+        1168,
+        320
       ],
       "id": "87083adc-7ce0-407c-a14e-60b7dab9cbf6",
       "name": "firecrawl-tool",
@@ -145,8 +145,8 @@
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
       "position": [
-        1120,
-        300
+        1344,
+        320
       ],
       "id": "ef8a54d7-8a1a-4687-9308-4a1906fd7cc8",
       "name": "SearXNG_http"
@@ -159,8 +159,8 @@
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
       "position": [
-        440,
-        -70
+        640,
+        -64
       ],
       "id": "bf21b1d6-1d04-4a23-90ba-c20d9463207b",
       "name": "Split Out"
@@ -179,8 +179,8 @@
       "type": "n8n-nodes-base.aggregate",
       "typeVersion": 1,
       "position": [
-        1160,
-        -300
+        1376,
+        -304
       ],
       "id": "3e6f51c8-3125-4fc8-85b6-522539890c21",
       "name": "Aggregate"
@@ -190,7 +190,6 @@
         "promptType": "define",
         "text": "=Analyze the security alert data provided below. Pay close attention to the `title`, `severity`, `status`, and especially the `comments` to understand the final outcome.\n\nAlert Data:\nID: {{ $json.id }}\nAzure Tenant ID: {{ $json.azureTenantId }}\nRisk Score: {{ $json.riskScore }}\nSeverity: {{ $json.severity }}\nCategory: {{ $json.category }}\nTitle: {{ $json.title }}\nStatus: {{ $json.status }}\nDescription: {{ $json.description }}\nComments: {{ $json.comments }}\nCreated Date: {{ $json.createdDateTime }}\nEvent Date: {{ $json.eventDateTime }}\nLast Modified: {{ $json.lastModifiedDateTime }}\nVendor: {{ $json.vendorInformation.vendor }}\nProvider: {{ $json.vendorInformation.provider }}\nRecommended Actions: {{ $json.recommendedActions }}\nTags: {{ $json.tags }}\nSender: {{ $json.sender }}\nRecipients: {{ $json.recipient }}\n\n{{\n/* Build the userStates block for this alert */\n($json.userStates || [])\n  .map((u, i) => [\n    `User State ${i + 1}:`,\n    `  AAD User ID: ${u.aadUserId}`,\n    `  User Principal Name: ${u.userPrincipalName}`,\n    `  Email Role: ${u.emailRole}`,\n    `  Logon Date Time: ${u.logonDateTime}`,\n    `  Logon IP: ${u.logonIp}`,\n    `  Logon Location: ${u.logonLocation}`,\n    `  Risk Score: ${u.riskScore}`,\n    `  User Account Type: ${u.userAccountType}`,\n    `  On-Prem SID: ${u.onPremisesSecurityIdentifier}`\n  ].join('\\n'))\n  .join('\\n\\n') || 'No userStates found.'\n}}\n\n\n\nRespond **only** with valid JSON in exactly this structure:\n```json\n{\n  \"analysis_summary\": \"\",\n  \"final_status\": \"\",\n  \"recommended_action\": \"\"\n}",
         "hasOutputParser": true,
-        "needsFallback": true,
         "options": {
           "systemMessage": "=You are an expert Tier 1 Security Analyst. Your job is to analyze security alert data and provide a concise, actionable summary for the team. You must determine the alert's nature, its final status, and recommend the next logical step. Your output must always be in the requested JSON format.\n\nTake deep breaths, understand the workflow, and then start.\n\n### Tool Arsenal: A Strategic Guide\n\nTo effectively investigate alerts, you must use your tools in a precise, two-step workflow: **1. Discovery** and **2. Extraction**. Each tool has a specific role in this process.\n\n**Step 1: Discovery Phase**\n\n**Tool: `SearXNG_http` (The Reconnaissance Tool)**\n\n* **Purpose**: Use this tool for broad discovery and information gathering. It is your primary tool for exploring the open web when you **do not have a specific, known URL**. Think of it as your global search engine for finding new intelligence.\n* **When to Use**:\n    * You need to understand a new threat or CVE (e.g., `\"details on CVE-2025-12345\"`).\n    * You need to research the reputation of an IP address, domain, or file hash (e.g., `\"reputation of IP 198.51.100.2\"`, `\"analysis of hash 5d41402abc4b2a76b9719d911017c592\"`).\n    * You need to find articles, blog posts, or threat intelligence reports on a topic (e.g., `\"FIN7 TTPs 2024\"`).\n* **Required Input**: A search query string (e.g., `\"What is the malware family associated with this hash...\"`).\n* **Expected Output**: A list of potentially relevant URLs.\n\n\n**Step 2: Extraction Phase**\n\n**Tool: `firecrawl-tool` (The Extraction Tool)**\n\n* **Purpose**: Use this tool for targeted content extraction from a **single, known URL**. It is used *after* the discovery phase to read the contents of a specific page you have identified.\n* **When to Use**:\n    * After `SearXNG_http` returns a promising URL to a security advisory or threat analysis blog.\n    * An alert or log provides a direct URL that needs to be analyzed (e.g., scraping a known phishing page).\n* **Required Input**: A single, complete URL (e.g., `\"https://securityblog.example.com/threat-analysis-of-cve-2025-12345\"`).\n* **Expected Output**: The full text content of that specific webpage.\n\n\n### The Golden Rule & Mandatory Workflow\n\nYou must follow this sequence. Misusing these tools will lead to errors.\n\n1.  **Start with a Question**: What information do I need to find?\n2.  **Discover with `SearXNG_http`**: Use your question to form a search query and execute it to get a list of URLs.\n3.  **Analyze & Select**: Review the URLs from the search results to identify the most promising source.\n4.  **Extract with `firecrawl-tool`**: Take the single best URL and use `firecrawl-tool` to read its content.\n\n**CRUCIAL**: Never use `firecrawl-tool` with a search query. Never use `SearXNG_http` if you already have the exact URL you need to read.\nCRUCIAL: Do not send data before validating it through quick research. You are dealing with critical information that must be handled with care."
         }
@@ -198,8 +197,8 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2,
       "position": [
-        900,
-        80
+        1136,
+        64
       ],
       "id": "75a8c812-303c-4baa-b348-760e1a51fb57",
       "name": "security_analyst_teir_1"
@@ -213,8 +212,8 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -220,
-        -920
+        -224,
+        -928
       ],
       "typeVersion": 1,
       "id": "7b8dc5a8-b3a6-4c7e-bfaa-dfb95900d56e",
@@ -230,8 +229,8 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        600,
-        -920
+        608,
+        -928
       ],
       "id": "c61721c9-49ac-49b9-a444-38cf3b471f8d",
       "name": "Sticky Note1"
@@ -245,8 +244,8 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        1580,
-        -920
+        1584,
+        -928
       ],
       "typeVersion": 1,
       "id": "b774ba80-f698-4b16-8534-74e76411f011",
@@ -312,13 +311,7 @@
     },
     "Ollama Chat Model": {
       "ai_languageModel": [
-        [
-          {
-            "node": "security_analyst_teir_1",
-            "type": "ai_languageModel",
-            "index": 1
-          }
-        ]
+        []
       ]
     },
     "Structured Output Parser": {
@@ -382,5 +375,5 @@
     "executionOrder": "v1"
   },
   "createdAt": "2025-07-12T12:19:50.386Z",
-  "updatedAt": "2025-07-14T07:10:10.266Z"
+  "updatedAt": "2025-08-04T08:26:28.355Z"
 }

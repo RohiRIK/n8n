@@ -1,0 +1,598 @@
+{
+  "name": "unified_webhook_system",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "900efed7-1d5a-4bc2-bd17-91c8f66068eb",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        -432
+      ],
+      "id": "b6965276-41fa-4b32-83a7-23bc30c65619",
+      "name": "Webhook",
+      "webhookId": "900efed7-1d5a-4bc2-bd17-91c8f66068eb"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.headers['x-event-type'] }}",
+                    "rightValue": "=alerts.trigger",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "6acef10d-0b25-43be-b062-ca275ede2674"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "39882c9d-70ee-425e-8b19-67a45ab89423",
+                    "leftValue": "={{ $json.headers['x-event-type'] }}",
+                    "rightValue": "tickets.open",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        224,
+        -448
+      ],
+      "id": "3b48c8d6-017e-420c-a160-26bbe19e178d",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f1e2d3c4-b5a6-47d8-9a0b-1c2d3e4f5a6b",
+              "name": "healthPayload",
+              "value": "={{ ({ ruleId: $json.ruleId, ruleName: $json.ruleName, metric: $json.rule.metric, scope: $json.rule.scope, windowDays: $json.rule.windowDays, condition: $json.rule.condition, metrics: { currentAvg: $json.metricsSummary.currentAvg, baselineAvg: $json.metricsSummary.baselineAvg, dropPercent: $json.metricsSummary.dropPercent, sampleSize: $json.metricsSummary.sampleSize }, affectedDevices: $json.affectedDevices || [], filters: $json.rule.filters || {}, environment: $json.body && $json.body.event ? $json.body.event.environment : undefined, conditionSummary: $json.body && $json.body.event ? $json.body.event.conditionSummary : undefined }) }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        944,
+        32
+      ],
+      "id": "d6abc554-87df-46a0-ab18-cbd6331a0a91",
+      "name": "Build Health Payload"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.recipients.join(',') }}",
+        "subject": "=Alert Triggered: {{ $json.ruleName }}",
+        "message": "=<!DOCTYPE html>\n<html>\n<head>\n<style>\n  body { \n    font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif; \n    line-height: 1.6; \n    color: #333; \n  }\n  .container { \n    width: 100%; \n    max-width: 800px; \n    margin: 20px auto; \n    padding: 20px; \n    border: 1px solid #ddd; \n    border-radius: 8px; \n  }\n  h2 { \n    color: #13C636; /* eToro green */\n  }\n  h3 {\n    border-bottom: 2px solid #13C636;\n    padding-bottom: 4px;\n    color: #333;\n  }\n  table { \n    width: 100%; \n    border-collapse: collapse; \n    margin-top: 20px; \n  }\n  th, td { \n    text-align: left; \n    padding: 12px; \n    border-bottom: 1px solid #eee; \n  }\n  th { \n    background-color: #f7f7f7; \n    color: #13C636; /* green header text */\n  }\n  tr:nth-child(even) { \n    background-color: #fbfbfb; \n  }\n  .summary-table td:first-child { \n    font-weight: bold; \n    width: 180px; \n  }\n  .badge { \n    background-color: #13C636; /* green badge */\n    color: white; \n    padding: 4px 8px; \n    border-radius: 4px; \n    font-size: 0.9em; \n  }\n</style>\n</head>\n<body>\n  <div class=\"container\">\n    <h2>Security Alert: {{ $json.ruleName }}</h2>\n    <p>This is an automated summary of a triggered security alert. Please review the details below.</p>\n    \n    <h3>Alert Details</h3>\n    <table class=\"summary-table\">\n      <tr>\n        <td>Rule Name:</td>\n        <td>{{ $json.ruleName }}</td>\n      </tr>\n      <tr>\n        <td>Rule ID:</td>\n        <td><code>{{ $json.ruleId }}</code></td>\n      </tr>\n      <tr>\n        <td>Alert Time:</td>\n        <td>{{ new Date($now).toLocaleString('en-IL', { timeZone: 'Asia/Jerusalem' }) }}</td>\n      </tr>\n      <tr>\n        <td>Total Devices Affected:</td>\n        <td><strong>{{ $json.body.affectedDevices.length }}</strong></td>\n      </tr>\n      <tr>\n        <td>Filters Applied:</td>\n        <td><span class=\"badge\">OS: {{ $json.filtersOS }}</span></td>\n      </tr>\n      <tr>\n        <td>Owner Notifications:</td>\n        <td>{{ $json.sendToOwners }}</td>\n      </tr>\n    </table>\n\n    <h3>Sample of Affected Devices (Top 15)</h3>\n    <table>\n      <thead>\n        <tr>\n          <th>Device Name</th>\n          <th>User</th>\n          <th>Operating System</th>\n          <th>Model</th>\n          <th>Score</th>\n        </tr>\n      </thead>\n      <tbody>\n      {{ \n        $json.body.affectedDevices.map(device => \n          `<tr>\n            <td>${device.deviceName || 'N/A'}</td>\n            <td>${device.user || 'N/A'}</td>\n            <td>${device.operatingSystem || 'N/A'}</td>\n            <td>${device.model || 'N/A'}</td>\n            <td>${device.currentScore}</td>\n          </tr>`\n        ).join('') \n      }}\n      </tbody>\n    </table>\n    <p><i>Note: This table shows at the all affected devices. A full report may be available in your monitoring dashboard.</i></p>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        672,
+        240
+      ],
+      "id": "bf92bb77-69af-42dd-a079-0a956a66b380",
+      "name": "Send_to_support1",
+      "webhookId": "9be62998-d489-498d-b7f4-6bca23a2b790",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "iwsmR7oYuPdo3kTl",
+          "name": "Gmail account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.user }}",
+        "subject": "=Alert Triggered: {{ $('If_sendToOwners').item.json.ruleName }}",
+        "message": "=<!DOCTYPE html>\n<html>\n<head>\n<style>\n  body { \n    font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif; \n    line-height: 1.6; \n    color: #333; \n  }\n  .container { \n    width: 100%; \n    max-width: 600px; \n    margin: 20px auto; \n    padding: 20px; \n    border: 1px solid #ddd; \n    border-radius: 8px; \n  }\n  h2 { \n    color: #13C636; /* eToro green */\n  }\n  h3 {\n    border-bottom: 2px solid #13C636;\n    padding-bottom: 4px;\n    color: #333;\n  }\n  .details-box { \n    background-color: #f9f9f9; \n    border: 1px solid #eee; \n    padding: 15px; \n    margin-top: 20px; \n    border-radius: 5px; \n  }\n  .action-steps { \n    margin-top: 20px; \n  }\n  .action-steps ol { \n    padding-left: 20px; \n  }\n  .action-steps li { \n    margin-bottom: 10px; \n  }\n  .button { \n    display: inline-block; \n    background-color: #13C636; /* eToro green */\n    color: white; \n    padding: 12px 20px; \n    text-decoration: none; \n    border-radius: 5px; \n    font-weight: bold; \n  }\n</style>\n</head>\n<body>\n  <div class=\"container\">\n    <h2>Action Required for Your Device: {{ $json.deviceName }}</h2>\n    <p>Hello {{ $json.user }},</p>\n    <p>Our automated device health monitoring system has detected a potential issue with the device assigned to you. To ensure your device remains secure and performs optimally, we need your assistance.</p>\n    \n    <div class=\"details-box\">\n      <h4>Device Information</h4>\n      <ul>\n        <li><strong>Device Name:</strong> {{ $json.deviceName || 'N/A' }}</li>\n        <li><strong>Model:</strong> {{ $json.model || 'N/A' }}</li>\n        <li><strong>Operating System:</strong> {{ $json.operatingSystem || 'N/A' }}</li>\n      </ul>\n    </div>\n\n    <div class=\"action-steps\">\n      <h3>Next Steps</h3>\n      <ol>\n        <li><strong>Do not ignore this alert.</strong> A prompt response helps keep our network and your data secure.</li>\n        <li>Please contact the IT Help Desk at your earliest convenience to have your device inspected.</li>\n        <li>\n          You can <strong>open a support ticket</strong> directly by clicking the button below. Please include the device information above in your ticket description.\n        </li>\n      </ol>\n      <p style=\"text-align:center; margin-top:30px;\">\n        <a href=\"https://your-it-support-portal.com/new-ticket\" class=\"button\">Open IT Support Ticket</a>\n      </p>\n    </div>\n\n    <p>Thank you for your prompt attention to this matter.</p>\n    <p><strong>The eToro IT Security Team</strong></p>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1248,
+        -112
+      ],
+      "id": "1928dcc8-8b66-4ae6-aa4f-317048d33d66",
+      "name": "send_to_owner1",
+      "webhookId": "9be62998-d489-498d-b7f4-6bca23a2b790",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "iwsmR7oYuPdo3kTl",
+          "name": "Gmail account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "body.affectedDevices",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        896,
+        -144
+      ],
+      "id": "112eb3f5-7e19-4b6f-8f6d-c58e245ec476",
+      "name": "Split Out1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7b32cd0e-a526-4c2c-863b-dd9e932f9aa5",
+              "name": "recipients",
+              "value": "={{ $json.body.rule.notify.recipients }}",
+              "type": "array"
+            },
+            {
+              "id": "3cb79171-f2b5-43ea-b75f-dce70b02907b",
+              "name": "sendToOwners",
+              "value": "={{ $json.body.rule.notify.sendToOwners }}",
+              "type": "boolean"
+            },
+            {
+              "id": "6998f971-f723-4ba5-be03-c4fc2ef8f64f",
+              "name": "audience",
+              "value": "={{ $json.body.rule.notify.audience }}",
+              "type": "string"
+            },
+            {
+              "id": "68b2e7c4-5e97-4200-9147-2966500ed86c",
+              "name": "openTicket",
+              "value": "={{ $json.body.rule.notify.openTicket }}",
+              "type": "boolean"
+            },
+            {
+              "id": "b385026f-6239-4c83-99cd-abd6ce9b1881",
+              "name": "filtersOS",
+              "value": "={{ $json.body.rule.filters.os.include }}",
+              "type": "array"
+            },
+            {
+              "id": "c6694122-1c0d-4e99-bbf5-b7c415d2bd0c",
+              "name": "ruleName",
+              "value": "={{ $json.body.event.ruleName }}",
+              "type": "string"
+            },
+            {
+              "id": "3f4b6532-d459-4810-bfc8-260c732ecbdd",
+              "name": "ruleId",
+              "value": "={{ $json.body.event.ruleId }}",
+              "type": "string"
+            },
+            {
+              "id": "a6f4e3a1-9b7d-4a2c-b3d5-2e6f9a1c0c11",
+              "name": "healthEnabled",
+              "value": "={{ $json.headers && $json.headers['x-health-ai-enabled'] === 'true' }}",
+              "type": "boolean"
+            },
+            {
+              "id": "e0d2b3c4-5f6a-4789-9abc-12d3e4f5a6b7",
+              "name": "metricsSummary",
+              "value": "={{ $json.body.event.metricsSummary }}",
+              "type": "object"
+            },
+            {
+              "id": "b1c2d3e4-f5a6-47b8-9c0d-1e2f3a4b5c6d",
+              "name": "rule",
+              "value": "={{ $json.body.rule }}",
+              "type": "object"
+            },
+            {
+              "id": "2dccf21b-72bb-46ba-9f86-e817c3657e1e",
+              "name": "body.rule.notify.openTicket",
+              "value": "={{ $json.body.rule.notify.openTicket }}",
+              "type": "boolean"
+            },
+            {
+              "id": "eb4e8f06-ac0b-4f4c-b2f2-c3f16ba1cf12",
+              "name": "body.affectedDevices",
+              "value": "={{ $json.body.affectedDevices }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        48
+      ],
+      "id": "4fbda29d-6140-4abf-8b7a-64fc64e29fb6",
+      "name": "prase_alerts_json"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "5f2e2f82-e9f7-4f66-8b77-6b5aa0dcc104",
+              "leftValue": "={{ $json.sendToOwners }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        -112
+      ],
+      "id": "552c26a1-f419-4a96-95c6-d4cd8cf82d88",
+      "name": "If_sendToOwners"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1280,
+        -256
+      ],
+      "id": "1dd0e85b-4e9f-43c6-9dfe-23b3e8f99c85",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "WdOCetfAcE7xCi4x",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1840,
+        -608
+      ],
+      "id": "3d43e78d-7ae9-4598-9773-de43b91fd7aa",
+      "name": "open_ticket",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=# IDENTITY and PURPOSE\n\nYou are an expert **IT Device Health Analyzer**. Your primary function is to process raw device health data, analyze it against predefined criteria, and generate a structured JSON report. This report must include a concise, human-readable summary for IT support and a list of actionable remediation steps.\n\n# OUTPUT INSTRUCTIONS (CRITICAL)\n\nYour final output **MUST be a single JSON object** following the specified structure below. **Do NOT include any other text, explanations, conversational remarks, or extraneous characters outside the JSON object.**\n\n```json\n{\n  \"summary\": \"A 2-3 sentence human-readable summary of the device's status, prioritizing critical issues.\",\n  \"recommendations\": [\n    {\n      \"issue\": \"A short description of a single identified issue.\",\n      \"recommendation\": \"A concise, actionable remediation step for that specific issue.\"\n    }\n  ]\n}\n```\n\n# INPUT\n\nYou will be provided with a JSON object, delimited by triple backticks, containing the device health data for analysis. You must use **only** the provided input data for your analysis.\n\n```json\n{\n  \"device\": {\n    \"name\": \"string\",\n    \"userPrincipalName\": \"string\",\n    \"lastSync\": \"YYYY-MM-DDTHH:MM:SSZ\"\n  },\n  \"Scores\": {\n    \"startupPerformanceScore\": number\n  },\n  \"body\": {\n    \"signals\": {\n      \"appCrashes\": {\n        \"count7d\": number,\n        \"topApps\": [\n          {\n            \"app\": \"string\",\n            \"publisher\": \"string\",\n            \"version\": \"string\"\n          }\n        ]\n      }\n    }\n  }\n}\n```\n\n# ANALYSIS CRITERIA AND RECOMMENDATION TEMPLATES\n\n**Analysis Parameters:**\n- The `currentDate` for evaluation is **2025-08-30**.\n- A **High Priority** sync issue is identified if `device.lastSync` is older than **2025-08-23** (i.e., more than 7 days before the `currentDate`).\n- A **Medium Priority** startup performance issue is identified if `Scores.startupPerformanceScore` is below **80**.\n- A **Medium Priority** application reliability issue is identified if `body.signals.appCrashes.count7d` is greater than **0**.\n\n**Predefined Recommendation Templates:**\n- **Not Synced Recently:** `{\"issue\": \"Device has not synced recently\", \"recommendation\": \"Verify the device's network connectivity. If online, restart the management agent service and initiate a manual sync.\"}`\n- **Poor Startup Performance:** `{\"issue\": \"Poor startup performance\", \"recommendation\": \"Review and disable non-essential startup applications via Task Manager. Check for pending OS or driver updates.\"}`\n- **Poor Application Reliability:** `{\"issue\": \"Poor application reliability\", \"recommendation\": \"The application '[app_name]' has crashed recently. Use Event Viewer to investigate further. Attempt to repair, reinstall, or update the application.\"}`\n\n# INSTRUCTIONS: Analyze Device Health and Generate Report\n\n**Perform all analysis and reasoning steps internally and systematically before formulating the final output.** Only output the final JSON object.\n\nFollow these steps precisely to analyze the input data and generate the output JSON:\n\n1.  **Identify Device Identifier**: Determine the primary device identifier. Prefer `device.userPrincipalName` if available; otherwise, use `device.name`.\n2.  **Evaluate Issues Based on Priority**:\n    *   **High Priority - Sync Status**: Check for a sync issue using the `lastSync` value and the `currentDate` parameter.\n    *   **Medium Priority - Startup Performance**: Check for a performance issue using the `startupPerformanceScore` parameter.\n    *   **Medium Priority - Application Reliability**: Check for an application reliability issue using `body.signals.appCrashes.count7d`. If `count7d` is greater than 0, extract the `app` name from `body.signals.appCrashes.topApps[0].app`. If `body.signals.appCrashes.topApps` is empty but `count7d > 0`, use \"an unknown application\" as the `[app_name]` placeholder for the recommendation template.\n3.  **Synthesize Summary (2-3 Sentences)**:\n    *   Begin the summary by identifying the device using the identifier from Step 1.\n    *   If **no issues** were identified in Step 2, generate the summary: \"This device, registered to `[device_identifier]`, appears to be operating within normal parameters with no critical issues detected.\"\n    *   If issues were identified, combine them into a concise, professional summary. Prioritize issues in the following order for phrasing: Sync Status > Startup Performance > Application Reliability.\n    *   Place the final summary into the `summary` field of the output JSON.\n4.  **Generate Remediation Recommendations**:\n    *   For each identified issue, create a corresponding recommendation object using the predefined templates. Prioritize recommendations in the `recommendations` array in the following order: Sync Status > Startup Performance > Application Reliability.\n    *   When using the \"Poor Application Reliability\" template, ensure `[app_name]` is correctly replaced with the extracted app name (or \"an unknown application\" as per Step 2).\n    *   If no issues were found, the `recommendations` array should be empty (`[]`).\n\n# EXAMPLES\n\n## Example 1 (Sync, Performance, and App Crash Issues)\n\n```json\n{\n  \"device\": {\n    \"name\": \"[device_name]\",\n    \"userPrincipalName\": \"[user_principal_name]\",\n    \"lastSync\": \"[old_sync_date]\"\n  },\n  \"Scores\": {\n    \"startupPerformanceScore\": \"[low_score_under_80]\"\n  },\n  \"body\": {\n    \"signals\": {\n      \"appCrashes\": {\n        \"count7d\": \"[crash_count_above_0]\",\n        \"topApps\": [\n          {\n            \"app\": \"[problematic_app.exe]\"\n          }\n        ]\n      }\n    }\n  }\n}\n```\n\n**Expected Output for Example 1:**\n\n```json\n{\n  \"summary\": \"This device, registered to [user_principal_name], has not synchronized in over a week. It also suffers from poor startup performance and application reliability issues with '[problematic_app.exe]'.\",\n  \"recommendations\": [\n    {\n      \"issue\": \"Device has not synced recently\",\n      \"recommendation\": \"Verify the device's network connectivity. If online, restart the management agent service and initiate a manual sync.\"\n    },\n    {\n      \"issue\": \"Poor startup performance\",\n      \"recommendation\": \"Review and disable non-essential startup applications via Task Manager. Check for pending OS or driver updates.\"\n    },\n    {\n      \"issue\": \"Poor application reliability\",\n      \"recommendation\": \"The application '[problematic_app.exe]' has crashed recently. Use Event Viewer to investigate further. Attempt to repair, reinstall, or update the application.\"\n    }\n  ]\n}\n```\n\n-----\n\n## Example 2 (Startup Performance Issue)\n\n```json\n{\n  \"device\": {\n    \"name\": \"[device_name]\",\n    \"userPrincipalName\": \"[user_principal_name]\",\n    \"lastSync\": \"[recent_sync_date]\"\n  },\n  \"Scores\": {\n    \"startupPerformanceScore\": \"[low_score_under_80]\"\n  },\n  \"body\": {\n    \"signals\": {\n      \"appCrashes\": {\n        \"count7d\": 0,\n        \"topApps\": []\n      }\n    }\n  }\n}\n```\n\n**Expected Output for Example 2:**\n\n```json\n{\n  \"summary\": \"This device, registered to [user_principal_name], is flagged for poor startup performance. This may be causing slow boot times and impacting user productivity.\",\n  \"recommendations\": [\n    {\n      \"issue\": \"Poor startup performance\",\n      \"recommendation\": \"Review and disable non-essential startup applications via Task Manager. Check for pending OS or driver updates.\"\n    }\n  ]\n}\n```\n\n-----\n\n## Example 3 (No Issues)\n\n```json\n{\n  \"device\": {\n    \"name\": \"[device_name]\",\n    \"userPrincipalName\": \"[user_principal_name]\",\n    \"lastSync\": \"[recent_sync_date]\"\n  },\n  \"Scores\": {\n    \"startupPerformanceScore\": \"[high_score_over_80]\"\n  },\n  \"body\": {\n    \"signals\": {\n      \"appCrashes\": {\n        \"count7d\": 0,\n        \"topApps\": []\n      }\n    }\n  }\n}\n```\n\n**Expected Output for Example 3:**\n\n```json\n{\n  \"summary\": \"This device, registered to [user_principal_name], appears to be operating within normal parameters with no critical issues detected.\",\n  \"recommendations\": []\n}\n```%                                                                                                                       "
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1344,
+        -608
+      ],
+      "id": "a8381ea3-b779-44c8-bde6-0a1485d04f5d",
+      "name": "IT_Device_Health_Analyzer"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "[\n  {\n    \"output\": {\n      \"summary\": \"This device, registered to <userPrincipalName_or_deviceName>, is experiencing <issue_description>.\",\n      \"recommendations\": [\n        {\n          \"issue\": \"<short_issue_name>\",\n          \"recommendation\": \"<actionable_step_to_remediate_issue>\"\n        }\n      ]\n    }\n  }\n]",
+        "autoFix": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1488,
+        -384
+      ],
+      "id": "16e48d90-5755-435c-bb33-e930340a12b9",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a9064f63-2044-4d27-abe2-a33a201f035b",
+              "name": "device",
+              "value": "={{ $json.body.device }}",
+              "type": "object"
+            },
+            {
+              "id": "78ecbd42-27e6-43a9-9a34-49fe8b90915e",
+              "name": "Scores",
+              "value": "={{ $json.body.signals.performance }}",
+              "type": "object"
+            },
+            {
+              "id": "15fb4246-e8c5-4ff3-a8aa-2b88c0a00d1e",
+              "name": " instructions",
+              "value": "={{ $json.body.ai.instructions }}",
+              "type": "string"
+            },
+            {
+              "id": "e6f1eab1-fb56-4918-9745-27c1fc73197b",
+              "name": "executionMode",
+              "value": "={{ $json.executionMode }}",
+              "type": "string"
+            },
+            {
+              "id": "15801e1d-480b-45b5-80b9-3970223c5525",
+              "name": " eventType",
+              "value": "={{ $json.body.eventType }}",
+              "type": "string"
+            },
+            {
+              "id": "096412c8-0beb-471d-a46a-14f52e81b608",
+              "name": "body.signals.appCrashes",
+              "value": "={{ $json.body.signals.appCrashes }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1088,
+        -624
+      ],
+      "id": "b193afe6-eef8-43bc-aa2c-6b5c3b5afcfe",
+      "name": "prase_ticket_json"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1f2e3d4-b5a6-4789-9abc-0d1e2f3a4b5c",
+              "leftValue": "={{ $json.body.rule.notify.openTicket }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        48
+      ],
+      "id": "739420d7-113c-4b67-915e-178e79e2aff8",
+      "name": "If_open_ticket"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Health Payload": {
+      "main": [
+        [
+          {
+            "node": "prase_ticket_json",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out1": {
+      "main": [
+        [
+          {
+            "node": "send_to_owner1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "prase_alerts_json": {
+      "main": [
+        [
+          {
+            "node": "Send_to_support1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If_sendToOwners",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If_open_ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "prase_alerts_json",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "prase_ticket_json",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "If_sendToOwners": {
+      "main": [
+        [
+          {
+            "node": "Split Out1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "IT_Device_Health_Analyzer",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Structured Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IT_Device_Health_Analyzer": {
+      "main": [
+        [
+          {
+            "node": "open_ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "IT_Device_Health_Analyzer",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "prase_ticket_json": {
+      "main": [
+        [
+          {
+            "node": "IT_Device_Health_Analyzer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If_open_ticket": {
+      "main": [
+        [
+          {
+            "node": "Build Health Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "createdAt": "2025-08-30T08:44:50.172Z",
+  "updatedAt": "2025-08-30T11:02:56.696Z"
+}

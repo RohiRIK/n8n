@@ -1,0 +1,124 @@
+{
+  "name": "firecrawl_webrequst",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5369647e-8485-4705-89eb-cad30ec3c2d8",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://firecrawl.rohi.life/v1/scrape",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"url\": \"https://medium.com/macoclock/10-unique-apps-that-will-give-fantastic-new-abilities-to-your-mac-941c0d6553f0\",\n  \"formats\": [\n    \"markdown\"\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "34140c75-50ff-427d-a46b-b130f1592152",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "eFwntbjfFyKCMtKV",
+          "name": "Firecrawl"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Please summarize the following Markdown text, focusing on:\n\nThe main topic/title\nKey sections and headers\nImportant metadata (like dates, authors, contributors)\n\nPlease ignore Markdown formatting elements like:\\n, [], (), and navigation items like 'Table of contents' or 'Share via' links.\n\n{{ $json.data.markdown }}\n\nFormat the summary with:\nThe title at the top\nA brief 2-3 sentence overview\nPublication details (date, contributors) if relevant\"",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        448,
+        0
+      ],
+      "id": "1dfb0fc1-4bdd-42e2-b0fc-2f0c5852c983",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "qwen3:8b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        352,
+        208
+      ],
+      "id": "4336d1e5-7440-40c1-b0bd-906ddefd9307",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "LprBiyyLSqKEHJGl",
+          "name": "Ollama account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "createdAt": "2025-05-07T13:10:52.160Z",
+  "updatedAt": "2025-08-20T06:13:59.012Z"
+}
