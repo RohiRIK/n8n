@@ -1,0 +1,8 @@
+description = "Troubleshoot an n8n workflow JSON file."
+prompt = """
+Analyze the following n8n workflow JSON file for common errors and potential issues.
+Provide a detailed analysis and suggest improvements.
+
+File content:
+!{cat {{args}}}
+"""

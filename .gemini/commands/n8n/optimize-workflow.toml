@@ -1,0 +1,8 @@
+description = "Optimize an n8n workflow."
+prompt = """
+Analyze the following n8n workflow JSON file and suggest optimizations based on the principles of AI-assisted development.
+Look for inefficient looping, missing error handling, and opportunities to use more efficient nodes or expressions.
+
+File content:
+!{cat {{args}}}
+"""

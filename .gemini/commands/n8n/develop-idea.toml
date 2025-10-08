@@ -1,0 +1,8 @@
+description = "Develop an idea for an n8n workflow."
+prompt = """
+Based on the following idea, generate a high-level plan for an n8n workflow.
+The plan should include the trigger, the necessary nodes, and the connections between them.
+The output should be a clear and concise description of the workflow's logic.
+
+Idea: {{args}}
+"""

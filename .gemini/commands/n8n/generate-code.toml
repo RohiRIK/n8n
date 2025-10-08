@@ -1,0 +1,6 @@
+description = "Generate JavaScript code for an n8n Code or Set node."
+prompt = """
+Based on the following description of a data transformation, generate the JavaScript code for an n8n "Code" or "Set" node.
+
+Description: {{args}}
+"""
