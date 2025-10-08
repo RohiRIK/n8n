@@ -1,0 +1,22 @@
+{
+  "name": "TEMPLATE - HTTP Trigger Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "your-unique-path",
+        "options": {}
+      },
+      "id": "HttpTrigger_1",
+      "name": "HTTP Trigger",
+      "type": "n8n-nodes-base.httpTrigger",
+      "typeVersion": 1,
+      "position": [ 240, 300 ]
+    }
+  ],
+  "connections": {},
+  "active": false,
+  "settings": {
+    "saveExecutionProgress": true
+  },
+  "tags": ["template","http"]
+}

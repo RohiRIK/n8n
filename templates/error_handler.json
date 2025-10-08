@@ -1,0 +1,46 @@
+{
+  "name": "TEMPLATE - Global Error Handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "ErrorTrigger_1",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [ 240, 300 ]
+    },
+    {
+      "parameters": {
+        "url": "https://example.com/notify",
+        "options": {
+          "redirect": {
+            "redirect": "error"
+          }
+        }
+      },
+      "id": "Notify_1",
+      "name": "Notify",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [ 520, 300 ]
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Notify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "saveExecutionProgress": true
+  },
+  "tags": ["template","error"]
+}

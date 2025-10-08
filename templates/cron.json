@@ -1,0 +1,27 @@
+{
+  "name": "TEMPLATE - Cron Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyHour"
+            }
+          ]
+        }
+      },
+      "id": "Cron_1",
+      "name": "Cron",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [ 240, 300 ]
+    }
+  ],
+  "connections": {},
+  "active": false,
+  "settings": {
+    "saveExecutionProgress": true
+  },
+  "tags": ["template","cron"]
+}

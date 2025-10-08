@@ -1,0 +1,11 @@
+# Optional metadata describing a workflow artifact
+# Not consumed by n8n; used by repo tools.
+
+name: "workflow-name"
+project: "project-name"
+owner: "team-or-person"
+type: "http|cron|agent|integration"
+description: "One-liner"
+tags:
+  - template
+  - example
