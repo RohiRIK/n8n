@@ -1,0 +1,499 @@
+{
+  "name": "core_subject_vector",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -256,
+        -320
+      ],
+      "id": "6be52cb9-a6af-493e-877e-6eec7df046e4",
+      "name": "When chat message received",
+      "webhookId": "bc8f9f8b-d36b-47d3-a18e-89b356893c2b"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -204,
+        560
+      ],
+      "id": "7d30b05b-ecd1-44ee-9e23-ee9b37a5609b",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "WdOCetfAcE7xCi4x",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "coresubject",
+          "mode": "list",
+          "cachedResultName": "coresubject"
+        },
+        "useReranker": true,
+        "options": {
+          "pineconeNamespace": ""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        -116,
+        352
+      ],
+      "id": "2fa5e616-f7aa-4521-8dea-d4f181de3c33",
+      "name": "Pinecone Vector Store",
+      "credentials": {
+        "pineconeApi": {
+          "id": "rBmzQ7idx8eaiPX4",
+          "name": "PineconeApi account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -20,
+        560
+      ],
+      "id": "53a47634-3d65-43a5-9ebb-f3db2491899f",
+      "name": "Embeddings Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "WdOCetfAcE7xCi4x",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"topic_searched\": {\n      \"type\": \"string\",\n      \"description\": \"The original core_subject that the entire analysis was based on.\"\n    },\n    \"subject_exists\": {\n      \"type\": \"boolean\",\n      \"description\": \"CRITICAL LOGIC: Set to 'true' only if the top search result from Pinecone had an extremely high score (e.g., > 0.98), indicating an exact match was found.\"\n    },\n    \"is_alternative_found\": {\n      \"type\": \"boolean\",\n      \"description\": \"CRITICAL LOGIC: Set to 'true' only if 'subject_exists' is false AND a different, but highly related subject was found with a strong score (e.g., > 0.82).\"\n    },\n    \"result_content\": {\n      \"type\": \"string\",\n      \"description\": \"The content of the subject that was found. This will be the content of the existing subject if 'subject_exists' is true, or the content of the alternative subject if 'is_alternative_found' is true. This field must be present if a discovery was made.\"\n    },\n    \"score\": {\n      \"type\": \"number\",\n      \"description\": \"The semantic similarity score (0.0 to 1.0) from Pinecone for the 'result_content'. This field must be present if a discovery was made.\"\n    }\n  },\n  \"required\": [\n    \"topic_searched\",\n    \"subject_exists\",\n    \"is_alternative_found\"\n  ]\n}",
+        "autoFix": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        204,
+        352
+      ],
+      "id": "7f590f06-9863-4381-8a6b-8fbf0ebf8843",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.rerankerCohere",
+      "typeVersion": 1,
+      "position": [
+        252,
+        560
+      ],
+      "id": "71850923-1a99-40bf-98c1-8e04521f8488",
+      "name": "Reranker Cohere",
+      "credentials": {
+        "cohereApi": {
+          "id": "HfOlRx0KzyyjXTcI",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "coresubject",
+          "mode": "list",
+          "cachedResultName": "coresubject"
+        },
+        "options": {
+          "pineconeNamespace": "=core_subject"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        828,
+        484
+      ],
+      "id": "2603eae9-86ec-4e41-824b-e5876356617b",
+      "name": "Pinecone Vector Store1",
+      "credentials": {
+        "pineconeApi": {
+          "id": "rBmzQ7idx8eaiPX4",
+          "name": "PineconeApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Please execute the full analysis protocol for the following core subject. Use your search tool and provide your final conclusion in the required JSON format.\n\nCore Subject: \"{{ $json.chatInput }} {{ $json.Core_subject }}\"",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are a \"Database Entry Analyst\" AI. Your primary mission is to determine if a \"core subject\" already exists in our Pinecone database, and if it doesn't, to find the best possible alternative using the tools you have.\n\n**YOUR AVAILABLE TOOL:**\n- **`Pinecone_Search`**: This tool accepts a string query and returns a list of semantically similar subjects with their content and similarity scores.\n\n**YOUR REQUIRED LOGICAL FLOW:**\n1.  Receive the core subject from the user.\n2.  Immediately use the `Pinecone_Search` tool to find related entries.\n3.  Analyze the results from the tool to determine if the subject exists or if a good alternative was found.\n4.  Provide your final analysis in the required JSON format, following the instructions embedded in the output schema's descriptions."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.1,
+      "position": [
+        -144,
+        96
+      ],
+      "id": "3bddc56d-a52a-4d2b-8ee7-23235854b801",
+      "name": "Check_if_core_subject_exsists_in_pinecode"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "59aeb695-9767-4b98-b915-81e5ca4930b0",
+              "leftValue": "={{ $json.output.subject_exists }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "a3c0e0bc-a272-42a0-ae54-caddc726392e",
+              "leftValue": "={{ $json.output.is_alternative_found }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        604,
+        336
+      ],
+      "id": "43f2a770-d45b-46e7-9789-8f9873bf3a0b",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "c2fb3ba6-26e2-4c90-b1ea-8f2b50d9e2ab"
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        916,
+        188
+      ],
+      "id": "fa6a4b98-a7f0-46bf-b408-7bbc8cc60fff",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "content",
+                "value": "={{ $json.output.topic_searched }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        924,
+        708
+      ],
+      "id": "f7707529-2774-41c2-a4cb-edd5f7cc81c6",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "Core_subject"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -272,
+        -128
+      ],
+      "id": "f4ef2f4d-cecd-4632-a8cb-e5d68452172c",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "mode": "load",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "coresubject",
+          "mode": "list",
+          "cachedResultName": "coresubject"
+        },
+        "prompt": "=```markdown\nYou are an expert Semantic Search Engine. Your function is to receive a core subject and find the most semantically related subjects from your knowledge base.\n\n### **CONTEXT**\n\nYou are performing a semantic search to find concepts, topics, or documents that are closely related in meaning to a user-provided subject. The similarity should be based on the underlying meaning and context, not just keyword matching.\n\n### **TASK**\n\nYour task is to analyze the `core_subject` and identify up to 5 subjects from your database that are most semantically similar.\n\n### **INPUT**\n\nYou will be provided with a single `core_subject`.\n* **Core Subject:** `{{ $json.chatInput }}`\n\n---\n\n### **INSTRUCTIONS**\n\n1.  **Analyze the Core Subject:** First, break down the `core_subject` to understand its primary meaning, key concepts, and context.\n2.  **Perform Semantic Search:** Search your knowledge base for subjects that are conceptually similar.\n3.  **Calculate Similarity:** For each potential match, determine its semantic similarity score (a value between 0.0 for completely dissimilar and 1.0 for identical).\n4.  **Rank and Select:** Rank the results by their similarity score in descending order. Return the top 5 results. If fewer than 5 relevant subjects are found, return only those that have a high degree of similarity.\n\n---\n\n### **OUTPUT REQUIREMENTS**\n\n* The output **MUST** be a JSON array of objects.\n* Each object in the array represents a similar subject and **MUST** contain two keys:\n    1.  `subject`: The name of the similar subject found.\n    2.  `similarity_score`: A float representing the calculated semantic similarity (e.g., `0.87`).\n* The list must be sorted by `similarity_score` from highest to lowest.\n\n---\n\n### **EXAMPLE**\n\n**INPUT:**\n* **Core Subject:** `\"The long-term effects of coffee consumption on human health\"`\n\n**OUTPUT:**\n```json\n[\n  {\n    \"subject\": \"Caffeine's impact on cardiovascular disease\",\n    \"similarity_score\": 0.91\n  },\n  {\n    \"subject\": \"Antioxidant properties of coffee beans\",\n    \"similarity_score\": 0.88\n  },\n  {\n    \"subject\": \"Correlation between stimulants and sleep patterns\",\n    \"similarity_score\": 0.85\n  },\n  {\n    \"subject\": \"Metabolic responses to daily caffeine intake\",\n    \"similarity_score\": 0.84\n  },\n  {\n    \"subject\": \"Tea consumption vs. coffee consumption health benefits\",\n    \"similarity_score\": 0.79\n  }\n]",
+        "includeDocumentMetadata": false,
+        "options": {
+          "pineconeNamespace": "core_subject"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        112,
+        -304
+      ],
+      "id": "e71fbdfe-d199-4b85-9ea5-08d8b5a20d69",
+      "name": "Pinecone Vector Store2",
+      "alwaysOutputData": true,
+      "credentials": {
+        "pineconeApi": {
+          "id": "rBmzQ7idx8eaiPX4",
+          "name": "PineconeApi account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        32,
+        -96
+      ],
+      "id": "1fb66f81-7325-4b57-aa34-f9d4f3793427",
+      "name": "Embeddings Google Gemini1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "WdOCetfAcE7xCi4x",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -208,
+        812
+      ],
+      "id": "560ad297-067d-46fe-a39f-2811ea7a2658",
+      "name": "Merge"
+    }
+  ],
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Pinecone Vector Store2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Check_if_core_subject_exsists_in_pinecode",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Structured Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone Vector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "Check_if_core_subject_exsists_in_pinecode",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ],
+      "ai_vectorStore": [
+        []
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "Pinecone Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Check_if_core_subject_exsists_in_pinecode",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reranker Cohere": {
+      "ai_reranker": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_reranker",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check_if_core_subject_exsists_in_pinecode": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pinecone Vector Store1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Pinecone Vector Store1",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Pinecone Vector Store2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store2",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "createdAt": "2025-07-26T14:17:12.364Z",
+  "updatedAt": "2025-07-27T14:40:43.201Z"
+}

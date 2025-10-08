@@ -1,0 +1,813 @@
+{
+  "name": "bloger_automation",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        560
+      ],
+      "id": "0f24ab16-253e-4ed9-a259-27b39ed9eee2",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "7028e9dd-da8a-483b-b3f7-e3fecbafb8b5",
+          "mode": "list",
+          "cachedResultName": "Notes Database",
+          "cachedResultUrl": "https://www.notion.so/7028e9ddda8a483bb3f7e3fecbafb8b5"
+        },
+        "limit": 1,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Tags|multi_select",
+              "condition": "contains",
+              "multiSelectValue": "blog_post_automations"
+            },
+            {
+              "key": "blog_post_crated|checkbox",
+              "condition": "equals"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -48,
+        400
+      ],
+      "id": "765721d9-b343-428e-b732-44a2cc14188f",
+      "name": "Get_Idea_page",
+      "credentials": {
+        "notionApi": {
+          "id": "Vpza7HmATHumPcuq",
+          "name": "Notion account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "resource": "block",
+        "operation": "getAll",
+        "blockId": {
+          "__rl": true,
+          "value": "={{ $json.url }}",
+          "mode": "url"
+        }
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        160,
+        352
+      ],
+      "id": "d9e11a44-f925-4fec-906f-d2aebb990107",
+      "name": "get_content_from_idea_page",
+      "credentials": {
+        "notionApi": {
+          "id": "Vpza7HmATHumPcuq",
+          "name": "Notion account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Please generate the initial draft of a blog post, including a title, based on the following structured brief.\n\nAfter you have drafted the content, you MUST perform a self-assessment and provide your entire response as a single, valid JSON object that strictly adheres to the schema provided by the system.\n\n**Blog Post Brief**\n\n* **Target Audience:** {{ $json.target_audience }}\n* **Tone of Voice:** {{ $json.tone_of_voice }}\n* **Primary SEO Keywords:** {{ $json.seo_keywords }}\n* **Content Talking Points:** {{ $json.key_talking_points }}\n* **Sources & Links to Include:** {{ $json.sources_and_links }}\n* **Parent ID:** {{ $json.page_id }}\n\n**Drafting Instructions:**\n- Create a compelling, SEO-friendly blog post title.\n- Write in a clear, encouraging, and slightly informal tone.\n- Structure the article with H1 and H2 headings.\n- Naturally integrate the SEO keywords.\n- Embed the provided links directly into the content where appropriate.\n\n**JSON Output Rules:**\n- Pay close attention to all required keys and their data types (string, boolean, etc.) as defined in the schema.\n- **Data Integrity:** The `sources_and_links` array in your JSON output MUST contain the complete and exact list of URLs provided in the brief.\n- **Conditional Logic:** The values for `needs_more_research` and `next_steps_recommendation` MUST follow the critical rules provided in the original prompt. If `sources_and_links` is not empty, `needs_more_research` MUST be `true`.",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are the \"Publisher\" AI Agent, the central controller and final decision-maker in an automated content creation workflow.\n\n#### Core Responsibilities:\n\n1.  **Generate Drafts:** Generate an initial blog post draft based on the user's brief.\n2.  **Assess Quality:** Perform a quality self-assessment of the draft, checking for completeness, clarity, and adherence to the original brief.\n3.  **Incorporate Feedback:** Integrate feedback from other AI agents (like an Editor or Researcher) when provided.\n4.  **Route the Workflow:** Based on your assessment, decide the next immediate step for the draft:\n    * Approve for publication.\n    * Route to an Editor for linguistic improvements.\n    * Route to a Researcher for factual enrichment.\n    * Request a full re-draft if quality is too low.\n\n#### Strict Output Requirements:\n\n* Your entire response **MUST** be a single, valid JSON object.\n* The JSON object must contain all the keys and follow all the formatting rules specified in the user's prompt.\n* Do not include any text, conversation, or markdown formatting outside of the final JSON object.\n* This JSON output is critical as it passes control to the next agent in the workflow."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        688,
+        560
+      ],
+      "id": "8e3eebc1-eea5-42e4-8041-9e3eb1ecc3e7",
+      "name": "AI_Agent_Publisher_(Drafting)"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=The initial blog post draft was flagged as needing more research. We have provided an initial set of scraped content to act as a starting point. Your task is to act as a research specialist to create a new, comprehensive version of the article.\n\n**Original Content Brief:**\n- \"target_audience\": \"{{ $('arrange_idea_data').item.json.target_audience }}\"\n- \"tone_of_voice\": \"{{ $('arrange_idea_data').item.json.tone_of_voice }}\"\n- \"primary_seo_keywords\": \"{{ $('arrange_idea_data').item.json.seo_keywords }}\"\n\n**Initial (Inadequate) Draft:**\n\"initial_draft\": \"{{ $('AI_Agent_Publisher_(Drafting)').item.json.output.draft_content }}\"\n\n**Provided Research Material (Starting Point):**\n\"research_material\": \"{{ $('arrange_idea_data').item.json.sources_and_links }}\"\n\n**Your Task:**\nYour primary task is to rewrite the \"initial_draft\" into a new, comprehensive article.\nHowever, before you begin writing, you must first critically assess the `research_material` provided above. If you determine that it is insufficient, lacks statistics, is outdated, or needs more expert opinions to create a high-quality article, you **MUST** use your search tools to find additional sources. **You must be efficient. You are limited to a maximum of two (2) searches using your search tools to find new information. Gather all necessary information within these two searches before you begin writing.**\nOnce your research is complete, integrate all sources (both the provided material and any new material you found) to write the new article. The final piece must align with the \"tone_of_voice\" and \"target_audience\", and naturally include the \"primary_seo_keywords\".\n\n**Output Schema (MUST be a valid JSON object):**\n```json\n{\n  \"new_draft_title\": \"A new, compelling title based on the synthesized content\",\n  \"new_draft_content\": \"The full text of the new, comprehensive article in Markdown format.\",\n  \"research_summary\": \"A brief, 2-3 sentence summary of how the provided and newly discovered research was incorporated.\"\n}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are an AI Research Specialist. Your mission is to gather, synthesize, and integrate information from the web to fulfill a user's content request. You must critically evaluate the information you're given and decide if additional research is necessary.\n\n### Tool Arsenal\n\nYou have two primary tools for accessing web content. You must understand their distinct purposes to use them effectively.\n\n**1. General Research & Discovery Tool:**\n\n* **SearXNG_http:** Use this as your primary tool for exploring topics and finding new sources. When you need to find articles, statistics, expert opinions, or any information you don't have a direct URL for, formulate a query and use this tool.\n    * **Example Usage:** If you need to find recent statistics about AI adoption in marketing, you would call `SearXNG_http` with a query like `\"recent AI adoption statistics in marketing 2024\"`.\n\n**2. Specific Content Extraction Tool:**\n\n* **firecrawl-tool:** Use this tool when you have a specific URL and you need to scrape its content. This is for fast, direct content extraction from a known source. It is especially useful for scraping the URLs you discover using `SearXNG_http`.\n    * **Example Usage:** After `SearXNG_http` returns a promising URL like `https://example.com/ai-stats`, you would then call `firecrawl-tool` with that URL to get the page's content.\n\n### Standard Operating Procedure (SOP)\n\n1.  **Analyze the Request:** Carefully examine the user's prompt, including the initial draft, the provided research material, and the content goals (audience, tone, keywords).\n2.  **Identify Information Gaps:** Critically assess the provided `research_material`. Is it sufficient to create a comprehensive and authoritative article? Does the initial draft make claims that aren't supported by the provided sources?\n3.  **Conduct Supplemental Research (If Necessary):**\n    * If you identify gaps, use **`SearXNG_http`** to find more information. Formulate targeted search queries based on what's missing (e.g., \"studies on SME marketing automation\", \"quotes from experts on AI in copywriting\").\n    * Once you find relevant URLs from your search, use **`firecrawl-tool`** to scrape the content of those pages.\n4.  **Synthesize and Write:** Integrate the initial draft, the provided research, and any new material you gathered into a single, cohesive new draft. Ensure the final output meets all requirements of the user's prompt (tone, audience, keywords).\n5.  **Format the Output:** Your final output MUST be a single, valid JSON object that strictly follows the schema requested by the user. Do not add any extra commentary outside of the JSON structure."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        1232,
+        560
+      ],
+      "id": "63461477-f4a7-429b-b4db-e2548b42db20",
+      "name": "AI_Agent_researcher"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"page_id\": {\n      \"type\": \"string\",\n      \"description\": \"The Parent ID provided in the brief.\"\n    },\n    \"sources_and_links\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"The array of source links provided in the brief.\"\n    },\n    \"draft_title\": {\n      \"type\": \"string\",\n      \"description\": \"The compelling, SEO-friendly title you generated for the blog post.\"\n    },\n    \"status\": {\n      \"type\": \"string\",\n      \"description\": \"The current status of the draft, which should be 'initial_draft_generated'.\"\n    },\n    \"draft_content\": {\n      \"type\": \"string\",\n      \"description\": \"The full blog post content in Markdown format, including H1 and H2 headings.\"\n    },\n    \"draft_summary\": {\n      \"type\": \"string\",\n      \"description\": \"A brief, 1-2 sentence summary of the generated draft.\"\n    },\n    \"initial_quality_check\": {\n      \"type\": \"boolean\",\n      \"description\": \"A boolean (true/false) indicating if the draft is well-structured and follows all instructions.\"\n    },\n    \"initial_quality_feedback\": {\n      \"type\": \"string\",\n      \"description\": \"A short text explanation for the initial_quality_check.\"\n    },\n    \"needs_more_research\": {\n      \"type\": \"boolean\",\n      \"description\": \"CRITICAL RULE: Check if the 'sources_and_links' array in this JSON is empty or not. If the array contains ANY URLs, you MUST set this value to true. If the array is empty, set it to false.\"\n    },\n    \"needs_linguistic_editing\": {\n      \"type\": \"boolean\",\n      \"description\": \"A boolean (true/false) indicating if the draft has grammatical errors or an inconsistent tone.\"\n    },\n    \"next_steps_recommendation\": {\n      \"type\": \"string\",\n      \"description\": \"Your recommendation for the next immediate step, based on the assessment.\"\n    }\n  },\n  \"required\": [\n    \"page_id\",\n    \"sources_and_links\",\n    \"draft_title\",\n    \"status\",\n    \"draft_content\",\n    \"draft_summary\",\n    \"initial_quality_check\",\n    \"initial_quality_feedback\",\n    \"needs_more_research\",\n    \"needs_linguistic_editing\",\n    \"next_steps_recommendation\"\n  ]\n}",
+        "autoFix": true,
+        "customizeRetryPrompt": true,
+        "prompt": "### CORRECTION REQUIRED ###\n\nYour previous response failed to generate a valid JSON object that matched the required schema. You must analyze the error and fix it.\n\n#### 1. The Original Schema You Were Given:\n{instructions}\n\n#### 2. Your Previous, Incorrect Response:\n{completion}\n\n#### 3. The Specific Parsing Error:\n{error}\n\n#### YOUR TASK:\n\nCarefully review the parsing error. Compare your incorrect response to the original schema. You MUST correct your response to fix the error.\n\nProvide the full and valid JSON object now. Do not include any apologies, explanations, or any other text outside of the JSON object itself."
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        768,
+        784
+      ],
+      "id": "19139103-a29f-47c6-b22f-76ec620ca0d8",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-pro",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1104,
+        960
+      ],
+      "id": "d1c5c0a9-9d65-42e1-89f8-c769905e10eb",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "WdOCetfAcE7xCi4x",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://firecrawl.rohi.life/v1/scrape",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('JSON', ``, 'json') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        1264,
+        800
+      ],
+      "id": "cf6b4589-cfeb-49d6-9c56-8a726034e602",
+      "name": "firecrawl-tool",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "eFwntbjfFyKCMtKV",
+          "name": "Firecrawl"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-preview-05-20",
+        "options": {
+          "temperature": 0.4
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        608,
+        944
+      ],
+      "id": "26e2e921-e6e8-4247-b516-f096af0845c9",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "WdOCetfAcE7xCi4x",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1792,
+        816
+      ],
+      "id": "d99a9d74-9b0b-4a23-a758-8f18c4ce8cb3",
+      "name": "Google Gemini Chat Model2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "WdOCetfAcE7xCi4x",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Please perform a final linguistic edit on the following blog post, adhering to all rules defined in the System Message.\n\n**Title to Edit:**\n{{ $json.output.new_draft_title }}\n\n**Content to Edit:**\n{{ $json.output.new_draft_content }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=Of course. I will add a new instruction to the system message that tells the AI to add your contact details at the end of every blog post it edits.\n\nI'll use placeholders for your personal links and email address. You will need to replace `[Your Name]`, `[Your LinkedIn URL]`, `[Your GitHub URL]`, and `your.email@example.com` with your actual information.\n\nHere is the updated system message with the new author signature instruction included as rule #5.\n\n***\n\n## **System Message**\n\nYou're an editor. Your main job is to polish a draft blog post written for a developer and tech-savvy audience. Your goal is to make the text clear, correct, and ready to publish.\n\n---\n\n### **Your Core Instructions**\n\n1.  **Make it Easy to Read.** Improve the flow and fix all grammar, spelling, and punctuation. Make sure the sentences are engaging and simple for anyone to understand.\n2.  **Don't Change the Facts.** You **must** keep all specific facts, statistics, user quotes, company names (like n8n, Ollama, Notion, Firecrawl), and technical details exactly as they are. Your job is to improve the language *around* these facts, not the facts themselves.\n3.  **Keep the Formatting.** You **must** preserve all existing Markdown formatting. This includes headings (`#`, `##`), bold text (`**`), lists (`*`), and links (`[text](url)`).\n4.  **Final Output Only.** Your final output must **only** be the complete, edited blog post, starting with the title as an H1 heading (`#`). Do not include any of your own commentary, notes, or explanations like \"Here is the revised version:\".\n5. Add a Personal Author Signature. At the very end of the article, write a short, friendly, and personal closing paragraph. Your goal is to make it different every time. The closing should feel natural and connect to the topic of the article you just edited.\n\nGuidelines for the closing paragraph:\n\nBe Creative: Don't repeat the same phrase. Try to relate to the article's main point, ask the reader a question to encourage discussion, or invite them to share their own experiences with the topic.\n\nNaturally Weave in these Details: Do not just list them. Integrate them smoothly into your closing sentence(s).\n\nName: Rohi Rikman\n\nLinks: [LinkedIn](www.linkedin.com/in/rohi-rikman-48831b239), [GitHub](https://github.com/RohiRIK/CloudJourneyBlog.git), and [email](mailto:Rohi5054@gmail.com).\n\n---\n\n### **How to Write to Sound Human**\n\nThis is the most important part. Your writing must sound like it came from a real person.\n\n#### **Writing Style**\n* **Use Simple Words:** Write like you're talking to a friend. Avoid complex or overly academic vocabulary.\n* **Keep Sentences Short:** Break down complex ideas into smaller, easy-to-digest pieces.\n* **Vary Sentence Length:** While short sentences are great, a mix creates a better rhythm. Follow a longer sentence with a short one for impact.\n* **Use the Active Voice:** It's more direct and has more energy.\n    * **For example:** Instead of \"The data was processed by the script,\" write \"The script processed the data.\"\n* **Use Contractions:** Use `it's`, `you'll`, `we've`, and `don't`. It’s how people actually talk and write casually.\n\n#### **Tone and Engagement**\n* **Be Direct:** Get to the point. Cut out unnecessary fluff, adjectives, and adverbs.\n* **Address the Reader Directly:** Use \"you\" and \"your\" to make the reader feel like you're talking to them.\n    * **For example:** Instead of \"A user should check their settings,\" write \"You should check your settings.\"\n* **Ask the Reader Questions:** Pull the reader into the text to make it feel like a conversation.\n    * **For example:** \"So, what's the catch?\" or \"But how does it actually work?\"\n* **Be Honest:** Admit limitations. Don't oversell or use hype. Stick to being helpful.\n\n#### **Words to Use and Avoid**\n\n* **🚫 Never Use AI Clichés:** Avoid common marketing and AI phrases. Do not use words like:\n    * \"Dive into\"\n    * \"Unleash\"\n    * \"Game-changing\"\n    * \"Revolutionary\"\n    * \"Transformative\"\n    * \"Leverage\"\n    * \"Optimize\"\n    * \"Unlock the potential\"\n\n* **✅ Use These Instead:** Try these simpler, more direct phrases to sound more natural:\n    * \"Here's how it works\"\n    * \"This can help you\"\n    * \"Here's what I found\"\n    * \"Here's the thing\"\n    * \"But here's the problem\"\n    * \"So here's what happened\"\n\n---\n\n### **Final Check**\n\nBefore you finish, read your edits out loud. Does it sound like something a real person would say in a conversation? If not, revise it until it does. The goal is to sound genuine, clear, and get straight to the point."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        560
+      ],
+      "id": "7e4d58b7-64ff-43cd-a6c4-8a81d9017c8a",
+      "name": "AI_agent_linguistic_editor"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"new_draft_title\": {\n      \"type\": \"string\",\n      \"description\": \"Create a compelling, SEO-friendly title for the blog post. It should be engaging and accurately reflect the content.\"\n    },\n    \"new_draft_content\": {\n      \"type\": \"string\",\n      \"description\": \"Write the full blog post here. It must be well-structured with Markdown for headings (#, ##), bold text (**), lists (*), and links. The tone should be authoritative but accessible for developers and technical marketers. Incorporate the research findings, statistics, and quotes seamlessly into the narrative.\"\n    },\n    \"research_summary\": {\n      \"type\": \"string\",\n      \"description\": \"Provide a concise, meta-summary of the key facts, statistics, and testimonials you found during your research and incorporated into the blog post. Explain what new information was added.\"\n    }\n  },\n  \"required\": [\n    \"new_draft_title\",\n    \"new_draft_content\",\n    \"research_summary\"\n  ]\n}",
+        "autoFix": true,
+        "customizeRetryPrompt": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1552,
+        1056
+      ],
+      "id": "5ea37237-83a6-4107-8eaf-057f5c83402a",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "output",
+        "binaryPropertyName": "=data {{ $json.output }}",
+        "options": {
+          "fileName": "=data"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        2320,
+        320
+      ],
+      "id": "3c0a12de-8aa6-4fbb-a6a5-c292f396ab34",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "content": "### Ideas\n1. AI that will addd picuters can be prall to the resarch\n2. Adding SearXNG_http to the V\n3. Hoomen in the loop, and aftert thaht publish it at medum.\n4. Add to nottion page thath it publhised   ",
+        "height": 240,
+        "width": 720
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        672,
+        0
+      ],
+      "id": "d97dceb3-2131-4278-951d-75bd5d9e5fb9",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "url": "http://searxng:8080/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "=q",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters0_Value', ``, 'string') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        1392,
+        800
+      ],
+      "id": "ba1cebaa-7d69-41e7-927a-5c1269a5cf68",
+      "name": "SearXNG_http"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $('AI_Agent_Publisher_(Drafting)').item.json.output.page_id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Publication Status|status",
+              "statusValue": "In progress"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        2448,
+        560
+      ],
+      "id": "1caf5ee7-da73-49b2-bc52-a94c6c1a3cab",
+      "name": "Update a database page",
+      "credentials": {
+        "notionApi": {
+          "id": "Vpza7HmATHumPcuq",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "deepseek-r1:14b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        272,
+        1792
+      ],
+      "id": "c8499ab1-c4fa-4ed8-8367-8014fad489fa",
+      "name": "deepseek-r1:14",
+      "credentials": {
+        "ollamaApi": {
+          "id": "LprBiyyLSqKEHJGl",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        208,
+        1488
+      ],
+      "id": "56014169-f95d-4b3b-a051-ae6496866756",
+      "name": "llama3.2",
+      "credentials": {
+        "ollamaApi": {
+          "id": "LprBiyyLSqKEHJGl",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "mistral:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        512,
+        1712
+      ],
+      "id": "b65309bd-aec1-40ba-86b7-1c4a6c70d59b",
+      "name": "mistral:latest",
+      "credentials": {
+        "ollamaApi": {
+          "id": "LprBiyyLSqKEHJGl",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "22857807-b1e7-801e-96e3-f3e683a70867",
+          "mode": "list",
+          "cachedResultName": "Blog Content Templates",
+          "cachedResultUrl": "https://www.notion.so/22857807b1e7801e96e3f3e683a70867"
+        },
+        "limit": 1,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -48,
+        848
+      ],
+      "id": "e833c58f-f69d-4277-8e4c-ead3720ac893",
+      "name": "get_blogpst_tempaltes",
+      "credentials": {
+        "notionApi": {
+          "id": "Vpza7HmATHumPcuq",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// This is the corrected script to parse Notion blocks into a structured JSON object.\n// VERSION 3: Adds extraction of the parent page_id.\n\nconst structuredData = {};\nlet currentKey = null;\nlet pageId = null; // NEW: Variable to store the parent page ID.\n\n// A map to convert Notion heading text to clean JSON keys.\nconst keyMap = {\n  'Target Audience': 'target_audience',\n  'Tone of Voice': 'tone_of_voice',\n  'SEO Keywords': 'seo_keywords',\n  'Key Talking Points': 'key_talking_points',\n  'Sources & Links to Include': 'sources_and_links',\n  'Call to Action (CTA)': 'call_to_action',\n  'Excluded Topics': 'excluded_topics'\n};\n\n// A set of placeholder texts to ignore, so they don't get added to your data.\nconst ignoreContent = new Set([\n  'Use bullet points to list the main ideas, arguments, or steps the article must cover. This will become the outline for the AI-generated draft.',\n  'Paste any URLs for research, sources, or internal links that should be referenced or included in the article.',\n  'What is the single most important action you want the reader to take after finishing the article? E.g., \"Sign up for our webinar,\" \"Try this workflow template,\" \"Leave a comment with your experience.\"',\n  'List any specific topics, competitors, or phrases to avoid. This helps keep the AI on track. E.g., \"Do not mention competitor X,\" \"Avoid discussing pricing details,\" \"Don\\'t use overly complex jargon.\"'\n]);\n\n\nfor (const item of items) {\n  const block = item.json;\n\n  // NEW: Grab the page_id from the first block that has one.\n  // This runs only once.\n  if (!pageId && block.parent && block.parent.page_id) {\n    pageId = block.parent.page_id;\n  }\n\n  // Ensure we have a block with content and type before proceeding\n  if (!block || !block.type || typeof block.content !== 'string') {\n    continue;\n  }\n  \n  const blockType = block.type;\n  const blockContent = block.content.trim();\n\n  // If the content is in our ignore list, skip it.\n  if (ignoreContent.has(blockContent)) {\n    continue;\n  }\n\n  // Check if the current block is a heading that we care about.\n  if (blockType === 'heading_2' && keyMap[blockContent]) {\n    currentKey = keyMap[blockContent]; // Update our current section key\n    // Initialize the key in our result object. Lists get an array, others get a string.\n    if (['seo_keywords', 'key_talking_points', 'sources_and_links', 'excluded_topics'].includes(currentKey)) {\n      structuredData[currentKey] = [];\n    } else {\n      structuredData[currentKey] = '';\n    }\n    continue; // Move to the next block\n  }\n\n  // If we are inside a section (currentKey is set), process the content.\n  if (currentKey) {\n    if (blockType === 'bulleted_list_item' || blockType === 'numbered_list_item') {\n      if (Array.isArray(structuredData[currentKey])) {\n        structuredData[currentKey].push(blockContent);\n      }\n    } else if (blockType === 'paragraph') {\n      structuredData[currentKey] += (structuredData[currentKey] ? ' ' : '') + blockContent;\n    }\n  }\n}\n\n// NEW: Add the captured page_id to our final data object.\nif (pageId) {\n  structuredData.page_id = pageId;\n}\n\n// Return the single, structured JSON object for the next node.\nreturn [\n  {\n    json: structuredData\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        384,
+        288
+      ],
+      "id": "e70e3c66-b3e4-4139-99d7-b1800de4b8e5",
+      "name": "arrange_idea_data2",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c8354f0f-7b75-4bcd-8d35-1d87da81934d",
+              "name": "page_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "1718a16f-b24d-46f5-8d9e-678d8a10063b",
+              "name": "url",
+              "value": "={{ $json.url }}",
+              "type": "string"
+            },
+            {
+              "id": "09eec4ce-a08e-47bc-9fea-02dc3dd20477",
+              "name": "target_audience",
+              "value": "={{ $json.property_target_audience }}",
+              "type": "string"
+            },
+            {
+              "id": "988a00f0-d0bb-460f-9de3-6b001e34add2",
+              "name": "tone_of_voice",
+              "value": "={{ $json.property_tone_of_voice }}",
+              "type": "string"
+            },
+            {
+              "id": "26b9dad6-8f5f-4f1e-a445-31eaf7c5d685",
+              "name": "seo_keywords",
+              "value": "={{ $json.property_seo_keywords.join(', ')}}",
+              "type": "string"
+            },
+            {
+              "id": "f615684d-c7db-4ed8-9826-78c6e3423dd7",
+              "name": "key_talking_points",
+              "value": "={{ $json.property_key_talking_points_at_least_3_5 }}",
+              "type": "string"
+            },
+            {
+              "id": "4ec5c42b-2873-40df-8e93-ffbcda7e6d24",
+              "name": "sources_and_links",
+              "value": "={{ $json.property_sources_links_to_include_5 }}",
+              "type": "string"
+            },
+            {
+              "id": "276ef474-3e8b-40db-9d20-6f4f21d8b991",
+              "name": "call_to_action",
+              "value": "={{ $json.property_call_to_action_cta }}",
+              "type": "string"
+            },
+            {
+              "id": "012bebb6-3827-43b1-9789-f7325231454e",
+              "name": "excluded_topics",
+              "value": "={{ $json.property_excluded_topics.join(', ') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        192,
+        848
+      ],
+      "id": "2996b2e5-7d12-4884-8b20-d019e3663c51",
+      "name": "arrange_idea_data"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "owner": {
+          "__rl": true,
+          "value": "RohiRIK",
+          "mode": "list",
+          "cachedResultName": "RohiRIK",
+          "cachedResultUrl": "https://github.com/RohiRIK"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "CloudJourneyBlog",
+          "mode": "list",
+          "cachedResultName": "CloudJourneyBlog",
+          "cachedResultUrl": "https://github.com/RohiRIK/CloudJourneyBlog"
+        },
+        "filePath": "=content/blogs/{{ $('Title_to_Markdown_Filename').item.json.filename }}",
+        "fileContent": "={{ $('AI_agent_linguistic_editor').item.json.output }}",
+        "commitMessage": "chore: Refactor and document automation workflow for blog publishing"
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        2688,
+        560
+      ],
+      "id": "e5649a80-b1e1-426d-aece-eb0c90fed5c2",
+      "name": "Create a file",
+      "webhookId": "aebb114f-5710-4b9a-9f49-1540a12a8e5f",
+      "credentials": {
+        "githubApi": {
+          "id": "qSEsRGukJ4kS0Wum",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the title from the previous node\nconst title = $('AI_Agent_researcher').first().json.output.new_draft_title;\n\n// Replace spaces with underscores and add .md\nconst filename = title.replace(/\\s+/g, '_') + '.md';\n\n// Return the result as output\nreturn {\n  filename\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        560
+      ],
+      "id": "fef6a32e-9de8-4ae5-9133-7371b2b985c8",
+      "name": "Title_to_Markdown_Filename"
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "get_blogpst_tempaltes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get_Idea_page": {
+      "main": [
+        [
+          {
+            "node": "get_content_from_idea_page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_content_from_idea_page": {
+      "main": [
+        [
+          {
+            "node": "arrange_idea_data2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI_Agent_Publisher_(Drafting)": {
+      "main": [
+        [
+          {
+            "node": "AI_Agent_researcher",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI_Agent_Publisher_(Drafting)",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI_Agent_researcher",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Structured Output Parser1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "firecrawl-tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI_Agent_researcher",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI_Agent_Publisher_(Drafting)",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Structured Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI_Agent_researcher": {
+      "main": [
+        [
+          {
+            "node": "AI_agent_linguistic_editor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI_agent_linguistic_editor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI_Agent_researcher",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI_agent_linguistic_editor": {
+      "main": [
+        [
+          {
+            "node": "Title_to_Markdown_Filename",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        []
+      ]
+    },
+    "SearXNG_http": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI_Agent_researcher",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "deepseek-r1:14": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "llama3.2": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "mistral:latest": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "get_blogpst_tempaltes": {
+      "main": [
+        [
+          {
+            "node": "arrange_idea_data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "arrange_idea_data2": {
+      "main": [
+        []
+      ]
+    },
+    "arrange_idea_data": {
+      "main": [
+        [
+          {
+            "node": "AI_Agent_Publisher_(Drafting)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a database page": {
+      "main": [
+        [
+          {
+            "node": "Create a file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Title_to_Markdown_Filename": {
+      "main": [
+        [
+          {
+            "node": "Update a database page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "createdAt": "2025-06-14T10:26:12.832Z",
+  "updatedAt": "2025-07-18T10:27:11.970Z"
+}

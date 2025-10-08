@@ -1,0 +1,720 @@
+{
+  "name": "backup_flow_to_notion",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 3
+            }
+          ]
+        }
+      },
+      "id": "2c3549c1-99c1-4255-a02d-2f454e6ced5e",
+      "name": "Every 15 minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [
+        400,
+        899.5
+      ],
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "filters": {
+          "tags": "=workflow_backup"
+        },
+        "requestOptions": {}
+      },
+      "id": "3380272e-5631-44aa-b7da-5e23e0966978",
+      "name": "Get all workflows with tag",
+      "type": "n8n-nodes-base.n8n",
+      "position": [
+        620,
+        900
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "n8nApi": {
+          "id": "lN8WqXdTmoLt6Eap",
+          "name": "n8n account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "49092f3a-7f42-4067-b8ea-1073ef1d1bb8",
+              "name": "input",
+              "type": "object",
+              "value": "={{ $('work flow settings').item.json }}"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {
+          "includeBinary": true,
+          "ignoreConversionErrors": true
+        }
+      },
+      "id": "ced49644-b18f-4984-8dfd-199d88e3ded7",
+      "name": "Map fields",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        1720,
+        449.5
+      ],
+      "typeVersion": 3.3
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "88337d36-8cf6-4cd5-bec1-5123cf612934",
+              "operator": {
+                "type": "object",
+                "operation": "empty",
+                "singleValue": true
+              },
+              "leftValue": "={{ $('Notion').item.json }}",
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b890dacf-2ac2-4802-b96a-5097119d35ee",
+      "name": "if newly added workflow",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        1940,
+        440
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "1c457807-b1e7-8027-877b-fcc144532a29",
+          "mode": "list",
+          "cachedResultName": "Sync n8n to Notion ",
+          "cachedResultUrl": "https://www.notion.so/1c457807b1e78027877bfcc144532a29"
+        },
+        "title": "={{ $json.input.name }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "env id|rich_text",
+              "textContent": "={{ $json.input.envId }}"
+            },
+            {
+              "key": "URL (dev)|url",
+              "urlValue": "={{ $json.input.url }}"
+            },
+            {
+              "key": "Workflow updated at|date",
+              "date": "={{ $json.input.updatedAt }}"
+            },
+            {
+              "key": "Error workflow setup|checkbox",
+              "checkboxValue": "={{ $json.input.errorWorkflow }}"
+            },
+            {
+              "key": "isActive (dev)|checkbox",
+              "checkboxValue": "={{ $json.input.active }}"
+            },
+            {
+              "key": "workflow github URL|url",
+              "ignoreIfEmpty": true,
+              "urlValue": "={{ $json.workflow_github_URL }}"
+            }
+          ]
+        },
+        "options": {
+          "iconType": "file",
+          "icon": "https://super.so/icon/dark/settings.svg"
+        }
+      },
+      "id": "86edfe55-9a88-49ed-82de-df0c44a65d53",
+      "name": "Add to Notion",
+      "type": "n8n-nodes-base.notion",
+      "position": [
+        2380,
+        400
+      ],
+      "typeVersion": 2.1,
+      "credentials": {
+        "notionApi": {
+          "id": "Vpza7HmATHumPcuq",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $('Map fields').item.json.id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "isActive (dev)|checkbox",
+              "checkboxValue": "={{ $json.input.active }}"
+            },
+            {
+              "key": "Name|title",
+              "title": "={{ $json.workflow.name }}"
+            },
+            {
+              "key": "URL (dev)|url",
+              "urlValue": "={{ $json.input.url }}"
+            },
+            {
+              "key": "isActive (dev)|checkbox",
+              "checkboxValue": "={{ $json.input.active }}"
+            },
+            {
+              "key": "Workflow updated at|date",
+              "date": "={{ $json.input.updatedAt }}"
+            },
+            {
+              "key": "Error workflow setup|checkbox",
+              "checkboxValue": "={{ false }}"
+            },
+            {
+              "key": "workflow github URL|url",
+              "ignoreIfEmpty": true,
+              "urlValue": "=https://github.com/RohiRIK/CloudJourneyBlog/blob/main/projects/n8n_workflows/workflow_backups/{{$('work flow settings').item.json.name}}_{{ $json.input.envId }}.json"
+            }
+          ]
+        },
+        "options": {
+          "iconType": "file",
+          "icon": "https://super.so/icon/dark/settings.svg"
+        }
+      },
+      "id": "9d547270-37dd-41ee-98b7-13001c954ffa",
+      "name": "Update in Notion",
+      "type": "n8n-nodes-base.notion",
+      "position": [
+        2380,
+        799.5
+      ],
+      "typeVersion": 2.1,
+      "notesInFlow": false,
+      "executeOnce": false,
+      "credentials": {
+        "notionApi": {
+          "id": "Vpza7HmATHumPcuq",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "1c457807-b1e7-8027-877b-fcc144532a29",
+          "mode": "list",
+          "cachedResultName": "Sync n8n to Notion ",
+          "cachedResultUrl": "https://www.notion.so/1c457807b1e78027877bfcc144532a29"
+        },
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "env id|rich_text",
+              "condition": "equals",
+              "richTextValue": "={{ $('work flow settings').item.json.envId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        1520,
+        600
+      ],
+      "id": "8f45f975-5a70-4d7d-8531-1273f3badcc0",
+      "name": "Notion",
+      "alwaysOutputData": true,
+      "credentials": {
+        "notionApi": {
+          "id": "Vpza7HmATHumPcuq",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        840,
+        899.5
+      ],
+      "id": "88647a6b-8aa1-4ff6-952b-213c658855f0",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "067024c6-0ec8-4265-9fb5-78fab8f4a5eb",
+              "name": "name",
+              "value": "={{ $json.input.name }}",
+              "type": "string"
+            },
+            {
+              "id": "1de6339d-d76f-49d8-a980-5888d15d1c03",
+              "name": "workflow.name",
+              "value": "={{ $('Map fields').item.json.input.name }}",
+              "type": "string"
+            },
+            {
+              "id": "23956b80-44fc-4470-bf58-f3670df625dc",
+              "name": "workflow.active",
+              "value": "={{ $('Map fields').item.json.input.active }}",
+              "type": "boolean"
+            },
+            {
+              "id": "89f3ab14-f91c-4249-8cfe-835c22249a6f",
+              "name": "workflow.updatedAt",
+              "value": "={{ $('Map fields').item.json.input.updatedAt }}",
+              "type": "string"
+            },
+            {
+              "id": "237583f0-7f7e-4721-9af6-3248f8189d59",
+              "name": "workflow.createdAt",
+              "value": "={{ $('Map fields').item.json.input.createdAt }}",
+              "type": "string"
+            },
+            {
+              "id": "b63654b5-dab1-45ba-8c54-7f4e3f5bea81",
+              "name": "notion_url",
+              "value": "={{ $json.url }}",
+              "type": "string"
+            },
+            {
+              "id": "9ac167a4-08d0-41c3-9ec4-13fddd6e33be",
+              "name": "input.envId",
+              "value": "={{ $json.input.envId }}",
+              "type": "string"
+            },
+            {
+              "id": "c2614497-0771-4378-8875-b867ede5b0c1",
+              "name": "input.active",
+              "value": "={{ $json.input.active }}",
+              "type": "boolean"
+            },
+            {
+              "id": "85cd06d5-564d-4e8f-ae82-174d40a92486",
+              "name": "input.url",
+              "value": "={{ $json.input.url }}",
+              "type": "string"
+            },
+            {
+              "id": "fd7c7fe2-78bc-4834-99ea-757cf9d6a615",
+              "name": "input.name",
+              "value": "={{ $json.input.name }}",
+              "type": "string"
+            },
+            {
+              "id": "78818630-6016-4640-802e-9a7bb7f9b531",
+              "name": "input.updatedAt",
+              "value": "={{ $json.input.updatedAt }}",
+              "type": "string"
+            },
+            {
+              "id": "b7997fb8-0cd7-4253-bbdc-554d41539e4d",
+              "name": "input.createdAt",
+              "value": "={{ $json.input.createdAt }}",
+              "type": "string"
+            },
+            {
+              "id": "883552e3-a46d-4740-8ae5-e56a99380bb5",
+              "name": "input.tags",
+              "value": "={{ $json.input.tags }}",
+              "type": "string"
+            },
+            {
+              "id": "a01c6d35-b37b-4d5a-982b-7729b9f24fd3",
+              "name": "input.errorWorkflow",
+              "value": "={{ $json.input.errorWorkflow }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2160,
+        600
+      ],
+      "id": "e07054c5-29d2-4281-8cb8-09f50a41f09d",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1744510d-7ed7-46d8-acd3-f975ab73f298",
+              "name": "active",
+              "type": "boolean",
+              "value": "={{ $json.active }}"
+            },
+            {
+              "id": "7e76f5dc-0c32-4b26-a289-975155b80112",
+              "name": "url",
+              "type": "string",
+              "value": "=https://n8n.rohi.life/workflow/{{ $json.id }}"
+            },
+            {
+              "id": "a7b069bf-8090-4dca-a432-f4fd7aa84e6f",
+              "name": "errorWorkflow",
+              "type": "boolean",
+              "value": "={{ !!$json.settings?.errorWorkflow }}"
+            },
+            {
+              "id": "0bff7a9b-0860-4552-b0f6-5fc279fc75d6",
+              "name": "name",
+              "type": "string",
+              "value": "={{ $json.name }}"
+            },
+            {
+              "id": "3065ee2f-d1bb-42b7-b341-7bb38b0f6720",
+              "name": "updatedAt",
+              "type": "string",
+              "value": "={{ $json.updatedAt }}"
+            },
+            {
+              "id": "ea9d39e4-50ca-4c79-b6ab-8b22cafd0257",
+              "name": "createdAt",
+              "type": "string",
+              "value": "={{ $json.createdAt }}"
+            },
+            {
+              "id": "265d66cd-1796-40eb-ae5b-dca8d1a91871",
+              "name": "envId",
+              "type": "string",
+              "value": "={{ $json.id }}"
+            },
+            {
+              "id": "cfb766a4-a2de-4f9d-87f9-5b31f54b82f0",
+              "name": "tags",
+              "value": "={{ $json.tags[1].name }},{{ $json.tags[0].name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d702f13e-8e93-4142-87c7-49fbb6031e19",
+      "name": "work flow settings",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        1100,
+        600
+      ],
+      "typeVersion": 3.3
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "40dc76e0-cbc6-41d0-a89f-3267940ec117",
+              "name": "name",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "f82c247b-1cab-42eb-9f69-a6b89d6ea607",
+              "name": "nodes",
+              "value": "={{ $('Loop Over Items').item.json.nodes }}",
+              "type": "array"
+            },
+            {
+              "id": "2d224a5c-07f6-47b1-a501-893c5714bf87",
+              "name": "connections",
+              "value": "={{ $('Loop Over Items').item.json.connections }}",
+              "type": "object"
+            },
+            {
+              "id": "2b22b556-936c-48ab-a643-8e523871f8f1",
+              "name": "active",
+              "value": "={{ $json.active }}",
+              "type": "boolean"
+            },
+            {
+              "id": "70e461a1-ceb7-4cb2-8ca1-9fb2e771967f",
+              "name": "settings",
+              "value": "={{ $('Loop Over Items').item.json.settings }}",
+              "type": "object"
+            },
+            {
+              "id": "4481392b-2d89-4da5-be00-681a34245b2e",
+              "name": "createdAt",
+              "value": "={{ $json.createdAt }}",
+              "type": "string"
+            },
+            {
+              "id": "b1e7809b-605c-48eb-9ead-57e29d5b06a9",
+              "name": "updatedAt",
+              "value": "={{ $json.updatedAt }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1280,
+        600
+      ],
+      "id": "983bd884-16b9-432d-95f1-02c747dfb712",
+      "name": "workflow_json"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "82622e53-1501-4145-a4da-1dc3e72b3945",
+              "name": "input.active",
+              "value": "={{ $json.input.active }}",
+              "type": "boolean"
+            },
+            {
+              "id": "6bbb07e9-0362-427d-a018-a338c62182c8",
+              "name": "input.errorWorkflow",
+              "value": "={{ $json.input.errorWorkflow }}",
+              "type": "boolean"
+            },
+            {
+              "id": "5449f823-0886-4c31-91b9-3dad7eee6916",
+              "name": "input.name",
+              "value": "={{ $json.input.name }}",
+              "type": "string"
+            },
+            {
+              "id": "6733b225-9d9e-4487-bedb-2d65f246e8b5",
+              "name": "input.updatedAt",
+              "value": "={{ $json.input.updatedAt }}",
+              "type": "string"
+            },
+            {
+              "id": "a3a1ac22-df1c-476c-afd0-3b27fca1f3c8",
+              "name": "input.createdAt",
+              "value": "={{ $json.input.createdAt }}",
+              "type": "string"
+            },
+            {
+              "id": "e3eb5dc9-c51e-4a2f-805c-8f615bc845e9",
+              "name": "input.envId",
+              "value": "={{ $json.input.envId }}",
+              "type": "string"
+            },
+            {
+              "id": "5b5c0a24-eadc-4e26-b682-b1c49087a99b",
+              "name": "name",
+              "value": "={{ $json.input.name }}",
+              "type": "string"
+            },
+            {
+              "id": "d2927ba4-b5c5-40ed-840b-fbbc08623f7f",
+              "name": "workflow_github_URL",
+              "value": "=https://github.com/RohiRIK/CloudJourneyBlog/blob/main/projects/n8n_workflows/workflow_backups/{{$('work flow settings').item.json.name}}_{{ $json.input.envId }}.json",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "2814b47e-61a6-4596-a398-4e46f34ea1f2",
+      "name": "Map_fields_before_update_notion",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        2160,
+        400
+      ],
+      "typeVersion": 3.3
+    }
+  ],
+  "connections": {
+    "Map fields": {
+      "main": [
+        [
+          {
+            "node": "if newly added workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every 15 minutes": {
+      "main": [
+        [
+          {
+            "node": "Get all workflows with tag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "if newly added workflow": {
+      "main": [
+        [
+          {
+            "node": "Map_fields_before_update_notion",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get all workflows with tag": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion": {
+      "main": [
+        [
+          {
+            "node": "Map fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "work flow settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add to Notion": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update in Notion": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Update in Notion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "work flow settings": {
+      "main": [
+        [
+          {
+            "node": "workflow_json",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "workflow_json": {
+      "main": [
+        [
+          {
+            "node": "Notion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map_fields_before_update_notion": {
+      "main": [
+        [
+          {
+            "node": "Add to Notion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "createdAt": "2025-03-28T14:40:09.902Z",
+  "updatedAt": "2025-07-13T06:34:16.184Z"
+}

@@ -1,0 +1,305 @@
+{
+  "name": "searxng_agent",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        220
+      ],
+      "id": "d27e6fb3-bb65-4e13-9cd1-8385fd8e7a1f",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5d7bae10-4946-4364-83b5-d4ccd41a0006",
+              "name": "topic",
+              "value": "={{ $json.item }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        440,
+        220
+      ],
+      "id": "f6d6a4e0-2387-4949-b40e-e4ee93d04f71",
+      "name": "What to search"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        640,
+        640
+      ],
+      "id": "c6bbf140-afc0-43c9-b97b-c0a2f210b53f",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "WdOCetfAcE7xCi4x",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        120,
+        -720
+      ],
+      "id": "9e36b50a-4285-47de-a05d-f72309202061",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "LprBiyyLSqKEHJGl",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "numResults": 10,
+          "pageNumber": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Search_Page_Number', ``, 'number') }}",
+          "language": "en"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolSearXng",
+      "typeVersion": 1,
+      "position": [
+        120,
+        -480
+      ],
+      "id": "979291d7-6fa8-4984-86f1-20b9d6217429",
+      "name": "SearXNG",
+      "alwaysOutputData": true,
+      "credentials": {
+        "searXngApi": {
+          "id": "bZ6mv2UPYOXLtpYe",
+          "name": "SearXNG account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "http://searxng:8080/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "=q",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters0_Value', ``, 'string') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        740,
+        420
+      ],
+      "id": "7d138455-23e6-4a45-9d72-e7f4d813f794",
+      "name": "SearXNG_http"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"summary\": \"The detailed summary of the researched topic will be here.\",\n  \"sources\": [\n    \"https://www.example.com/article1\",\n    \"https://www.example.com/article2\",\n    \"https://www.example.com/another-source\"\n  ]\n}",
+        "autoFix": true,
+        "customizeRetryPrompt": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        868,
+        442.5
+      ],
+      "id": "ec58aaef-dbf7-4952-b57c-0c2c6e5099a6",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Your task is to research a given topic and respond only with a structured JSON object.\n\nThe topic to research is: {{ $json.topic }}\n\nInstructions:\n\nUse your search tools to gather comprehensive information on the topic.\n\nSynthesize the information from your search results into a detailed summary.\n\nYou must collect all the source URLs you used to create the summary.\n\nOutput Format:\n\nYour final response must be a single, valid JSON object and nothing else. The JSON object must contain exactly the following two keys:\n\n\"summary\": A string containing your detailed, well-structured summary of the topic.\n\n\"sources\": An array of strings, where each string is a unique URL that you used as a source for the summary.\n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are an expert AI Research Assistant. Your primary goal is to provide accurate, well-structured answers to user questions by using the tool available to you.\n\nTOOL:\n\nYou have one tool for searching the web:\n\nSearXNG_http: This is your dedicated tool for executing a web search. You must use it to answer any question that requires external or up-to-date information.\n\nWORKFLOW:\n\nAnalyze the Request: When you receive a user's question, first analyze it to understand the core information needed.\n\nExecute Search: Formulate a concise search query and execute it using the SearXNG_http tool.\n\nSynthesize and Format:\n\nBased on the information gathered from the tool, synthesize a single, comprehensive, and coherent summary.\n\nDo not just list the raw search results.\n\nFormat your final answer clearly using Markdown. Use headings, bold text, and bullet points to improve readability.\n\nCite Your Sources: Whenever possible, include a Markdown link to the original article or source at the end of your summary to support your findings.\n\nRULES:\n\nYou must base your entire answer on the information provided by the SearXNG_http tool. Never invent information.\n\nIf the SearXNG_http tool fails or does not return relevant information, you must clearly state that you were unable to find a reliable answer.\n\nDo not describe your own internal steps or thought process. Focus on delivering the final, polished answer."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        660,
+        220
+      ],
+      "id": "8ea1616e-f104-4fb9-96b6-cc4941745364",
+      "name": "searxng_agent"
+    },
+    {
+      "parameters": {
+        "content": "### **How This Automated Research Agent Works**\n\nThis workflow is designed to function as an autonomous research assistant. It takes a topic as input, uses a search engine to find relevant information online, and then produces a structured JSON output containing a detailed summary and a list of the source URLs it used.\n\nHere is a breakdown of the process, step by step:\n\n### 1. **Input:** A user provides a research topic.\n\n### 2. **Search:** An AI agent uses the SearXNG_http tool to find relevant information online.\n\n### 3. **Synthesize:** Powered by the Gemini model, the agent writes a summary from the search results and collects the source URLs.\n\n### 4. **Format:** A Structured Output Parser ensures the final output is a valid JSON object with summary and sources fields.\n\n### 5. **Output:** The workflow returns a clean, machine-readable JSON object, perfect for integration with other services.",
+        "height": 440,
+        "width": 1640,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -460,
+        -320
+      ],
+      "id": "fdb71ef6-0f9f-496a-aa92-5f94c3af1277",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "path": "4c24566a-fb84-415a-a222-7e3311330381",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        160,
+        400
+      ],
+      "id": "b351d899-91e7-438f-8f29-373b2205b7b4",
+      "name": "Webhook",
+      "webhookId": "4c24566a-fb84-415a-a222-7e3311330381"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1020,
+        220
+      ],
+      "id": "55bed003-f797-4a77-a124-bc1692cbb643",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "What to search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "What to search": {
+      "main": [
+        [
+          {
+            "node": "searxng_agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "searxng_agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Structured Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "SearXNG": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "SearXNG_http": {
+      "ai_tool": [
+        [
+          {
+            "node": "searxng_agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "searxng_agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "searxng_agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "What to search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "createdAt": "2025-06-28T18:05:16.662Z",
+  "updatedAt": "2025-06-29T15:56:14.472Z"
+}

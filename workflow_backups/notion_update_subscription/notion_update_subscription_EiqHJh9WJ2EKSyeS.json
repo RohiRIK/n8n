@@ -1,0 +1,326 @@
+{
+  "name": "notion_update_subscription",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 5
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "d7797bc1-0660-474d-a6bc-cf602d14da1c",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Function to get the current date and previous month's date in ISO 8601 format without time\nfunction getCurrentAndPreviousMonth() {\n  // Get the current date\n  const currentDate = new Date();\n  \n  // Get the previous month by subtracting one month\n  const previousMonthDate = new Date(currentDate);\n  previousMonthDate.setMonth(currentDate.getMonth() - 1);\n\n  // Format both dates as ISO 8601 (YYYY-MM-DD)\n  const currentDateISO = currentDate.toISOString().split('T')[0];\n  const previousMonthDateISO = previousMonthDate.toISOString().split('T')[0];\n\n  // Return the result as an array of objects\n  return [\n    {\n      json: {\n        currentDate: currentDateISO,\n        previousMonthDate: previousMonthDateISO\n      }\n    }\n  ];\n}\n\n// Example usage for n8n\nreturn getCurrentAndPreviousMonth();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "c0a0339d-1c43-426d-9179-a4d77d6dbed0",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "4ae63aaa-014f-4b3b-b350-09a62a0c71b4",
+          "mode": "list",
+          "cachedResultName": "Expenses  (Expense Tracker 2.0) ",
+          "cachedResultUrl": "https://www.notion.so/4ae63aaa014f4b3bb35009a62a0c71b4"
+        },
+        "limit": 20,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Subscription|checkbox",
+              "condition": "equals",
+              "checkboxValue": true
+            },
+            {
+              "key": "Date2|formula",
+              "condition": "equals",
+              "returnType": "date",
+              "dateValue": "={{ $('Code').item.json.previousMonthDate }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        620,
+        0
+      ],
+      "id": "e30494f6-425a-4ec3-855f-1a6d5e9d7ff6",
+      "name": "get last month subscription",
+      "credentials": {
+        "notionApi": {
+          "id": "Vpza7HmATHumPcuq",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "4ae63aaa-014f-4b3b-b350-09a62a0c71b4",
+          "mode": "list",
+          "cachedResultName": "Expenses  (Expense Tracker 2.0) ",
+          "cachedResultUrl": "https://www.notion.so/4ae63aaa014f4b3bb35009a62a0c71b4"
+        },
+        "title": "={{ $json.name }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Amount|number",
+              "numberValue": "={{ $json.property_amount }}"
+            },
+            {
+              "key": "Category|relation",
+              "relationValue": [
+                "={{ $json.property_category[0] }}"
+              ]
+            },
+            {
+              "key": "Currency|select",
+              "selectValue": "={{ $json.property_currency }}"
+            },
+            {
+              "key": "Incomes\\Expenses|select",
+              "selectValue": "={{ $json.property_incomes_expenses }}"
+            },
+            {
+              "key": "Subscription|checkbox",
+              "checkboxValue": true
+            },
+            {
+              "key": "New lines (Expense Tracker 2.0)|relation",
+              "relationValue": [
+                "={{ $('get_today_new_line').item.json.id }}"
+              ]
+            },
+            {
+              "key": "Payment method|relation",
+              "relationValue": [
+                "={{ $json.property_payment_method }}"
+              ]
+            }
+          ]
+        },
+        "options": {
+          "iconType": "file",
+          "icon": "https://super.so/icon/dark/repeat.svg"
+        }
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        40
+      ],
+      "id": "9d48bd42-e9c6-49ff-84f6-ebc04c64c21e",
+      "name": "Notion",
+      "credentials": {
+        "notionApi": {
+          "id": "Vpza7HmATHumPcuq",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "495e978c-b7bc-4ed2-acd7-3f1150054c4d",
+          "mode": "list",
+          "cachedResultName": "New lines (Expense Tracker 2.0)",
+          "cachedResultUrl": "https://www.notion.so/495e978cb7bc4ed2acd73f1150054c4d"
+        },
+        "limit": 1,
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Date|date",
+              "condition": "before",
+              "date": "={{ $json.currentDate }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        420,
+        0
+      ],
+      "id": "1a98707e-7960-4d71-8d45-3fd85966c06f",
+      "name": "get_today_new_line",
+      "alwaysOutputData": true,
+      "credentials": {
+        "notionApi": {
+          "id": "Vpza7HmATHumPcuq",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        840,
+        0
+      ],
+      "id": "4a314f3f-45e0-4106-a9de-1d5b8631bb7b",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Replace Me",
+      "typeVersion": 1,
+      "position": [
+        1560,
+        80
+      ],
+      "id": "b4e7921d-bb72-49c4-94dd-eb26ff5545c5"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.myNewField = 1;\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1780,
+        80
+      ],
+      "id": "d549a726-cf1b-47a0-824a-9d3eaacc00d5",
+      "name": "Code1"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "get_today_new_line",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get last month subscription": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_today_new_line": {
+      "main": [
+        [
+          {
+            "node": "get last month subscription",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Notion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace Me": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion": {
+      "main": [
+        [
+          {
+            "node": "Replace Me",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "createdAt": "2025-03-28T08:50:30.100Z",
+  "updatedAt": "2025-06-19T11:37:32.112Z"
+}

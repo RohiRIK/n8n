@@ -1,0 +1,268 @@
+{
+  "name": "notion_recurring_tasks",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -288,
+        160
+      ],
+      "id": "4c5772c3-91e8-42c2-ba93-cc53b8b54a7b",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "b2d8c567-7fac-4fb1-86ed-a73e224b6aa0",
+          "mode": "list",
+          "cachedResultName": "Tasks DataBase",
+          "cachedResultUrl": "https://www.notion.so/b2d8c5677fac4fb186eda73e224b6aa0"
+        },
+        "limit": 20,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Recur Interval|number",
+              "condition": "is_not_empty"
+            },
+            {
+              "key": "Kanban - Status|status",
+              "condition": "equals",
+              "statusValue": "=Done"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -16,
+        0
+      ],
+      "id": "53968ade-210b-4f46-a41d-7aa7f8b880dd",
+      "name": "Notion",
+      "credentials": {
+        "notionApi": {
+          "id": "Vpza7HmATHumPcuq",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        432,
+        0
+      ],
+      "id": "524093f2-ec23-4fb3-8290-4dd6f48f1334",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.task_id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Due|date",
+              "includeTime": false,
+              "date": "={{ $json.next_due }}"
+            },
+            {
+              "key": "Kanban - Status|status",
+              "statusValue": "To Do"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        1600,
+        208
+      ],
+      "id": "384e82f0-eba7-4b29-9e94-103c077b7feb",
+      "name": "Notion1",
+      "credentials": {
+        "notionApi": {
+          "id": "Vpza7HmATHumPcuq",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a7210c89-97b8-4f52-a3d8-06b87291b597",
+              "name": "task_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "e7346781-1dc3-4e9c-bb3f-c18a35570992",
+              "name": "next_due",
+              "value": "={{ $json.property_next_due.start }}",
+              "type": "string"
+            },
+            {
+              "id": "87a157e2-cb97-4f7c-a98f-9e2fc025119d",
+              "name": "property_kanban_status",
+              "value": "={{ $json.property_kanban_status }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1120,
+        80
+      ],
+      "id": "7f99de08-ce36-42c4-a9dd-afed9e636b3e",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 30 22 * * 0-5"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -304,
+        -64
+      ],
+      "id": "c08f3767-4131-411f-9f37-4da257b803f1",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "function getNextDay(dateString) {\n  try {\n    const inputDate = new Date(dateString);\n    if (isNaN(inputDate.getTime())) {\n      throw new Error('Invalid date format provided.');\n    }\n    inputDate.setDate(inputDate.getDate() + 1);\n    return inputDate.toISOString();\n  } catch (error) {\n    console.error(\"Error calculating next day:\", error.message);\n    return null;\n  }\n}\n\n\n// n8n requires you to process an array of items.\n// This loop will run for every item that the node receives.\nfor (const item of items) {\n  // Get the date string from the input item.\n  // We assume the field is named 'property_last_edited_time'. Change this if your field has a different name.\n  const myDate = item.json.property_last_edited_time;\n\n  // Call the function to calculate the next day.\n  const nextDay = getNextDay(myDate);\n\n  // Add the result to a new field in the item called 'nextDay'.\n  // This makes it available for subsequent nodes.\n  item.json.nextDay = nextDay;\n}\n\n// Return all the processed items to be passed on to the next node in the workflow.\nreturn items;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        48
+      ],
+      "id": "1753afc6-ba95-4ce9-8a0b-d021e85bed3b",
+      "name": "addding_next_day"
+    }
+  ],
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Notion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "addding_next_day",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Notion1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Notion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "addding_next_day": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Jerusalem",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "createdAt": "2025-03-30T06:09:32.007Z",
+  "updatedAt": "2025-07-18T12:03:41.530Z"
+}

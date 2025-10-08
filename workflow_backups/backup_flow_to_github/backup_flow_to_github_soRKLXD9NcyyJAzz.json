@@ -1,0 +1,564 @@
+{
+  "name": "backup_flow_to_github",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 3
+            }
+          ]
+        }
+      },
+      "id": "f4bf8ceb-17c1-4cd2-9800-b90d1fc82a73",
+      "name": "Every 15 minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [
+        368,
+        1088
+      ],
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "filters": {
+          "tags": "workflow_backup"
+        },
+        "requestOptions": {}
+      },
+      "id": "ff6fb537-583f-483d-be42-eec17480565f",
+      "name": "Get all workflows with tag",
+      "type": "n8n-nodes-base.n8n",
+      "position": [
+        592,
+        1088
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "n8nApi": {
+          "id": "lN8WqXdTmoLt6Eap",
+          "name": "n8n account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1744510d-7ed7-46d8-acd3-f975ab73f298",
+              "name": "active",
+              "type": "boolean",
+              "value": "={{ $json.active }}"
+            },
+            {
+              "id": "7e76f5dc-0c32-4b26-a289-975155b80112",
+              "name": "url",
+              "type": "string",
+              "value": "=https://n8n.rohi.life/workflow/{{ $json.id }}"
+            },
+            {
+              "id": "a7b069bf-8090-4dca-a432-f4fd7aa84e6f",
+              "name": "errorWorkflow",
+              "type": "boolean",
+              "value": "={{ !!$json.settings?.errorWorkflow }}"
+            },
+            {
+              "id": "0bff7a9b-0860-4552-b0f6-5fc279fc75d6",
+              "name": "name",
+              "type": "string",
+              "value": "={{ $json.name }}"
+            },
+            {
+              "id": "3065ee2f-d1bb-42b7-b341-7bb38b0f6720",
+              "name": "updatedAt",
+              "type": "string",
+              "value": "={{ $json.updatedAt }}"
+            },
+            {
+              "id": "ea9d39e4-50ca-4c79-b6ab-8b22cafd0257",
+              "name": "createdAt",
+              "type": "string",
+              "value": "={{ $json.createdAt }}"
+            },
+            {
+              "id": "265d66cd-1796-40eb-ae5b-dca8d1a91871",
+              "name": "envId",
+              "type": "string",
+              "value": "=internal-{{ $json.id }}"
+            },
+            {
+              "id": "cfa0fb0f-40ca-48f9-abed-c56e50feb190",
+              "name": "id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f376e179-d892-4cf5-bff2-f959e80b91ef",
+      "name": "work flow settings",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        1248,
+        784
+      ],
+      "typeVersion": 3.3
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "40dc76e0-cbc6-41d0-a89f-3267940ec117",
+              "name": "name",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "f82c247b-1cab-42eb-9f69-a6b89d6ea607",
+              "name": "nodes",
+              "value": "={{ $('Loop Over Items').item.json.nodes }}",
+              "type": "array"
+            },
+            {
+              "id": "2d224a5c-07f6-47b1-a501-893c5714bf87",
+              "name": "connections",
+              "value": "={{ $('Loop Over Items').item.json.connections }}",
+              "type": "object"
+            },
+            {
+              "id": "2b22b556-936c-48ab-a643-8e523871f8f1",
+              "name": "active",
+              "value": "={{ $json.active }}",
+              "type": "boolean"
+            },
+            {
+              "id": "70e461a1-ceb7-4cb2-8ca1-9fb2e771967f",
+              "name": "settings",
+              "value": "={{ $('Loop Over Items').item.json.settings }}",
+              "type": "object"
+            },
+            {
+              "id": "4481392b-2d89-4da5-be00-681a34245b2e",
+              "name": "createdAt",
+              "value": "={{ $json.createdAt }}",
+              "type": "string"
+            },
+            {
+              "id": "b1e7809b-605c-48eb-9ead-57e29d5b06a9",
+              "name": "updatedAt",
+              "value": "={{ $json.updatedAt }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1472,
+        784
+      ],
+      "id": "fdc3924e-4ee4-4aee-bd20-5e1d22596091",
+      "name": "workflow_json"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1024,
+        1088
+      ],
+      "id": "1b19cbf6-a846-4ae7-8be9-8ed076a7173c",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "value": "RohiRIK",
+          "mode": "list",
+          "cachedResultName": "RohiRIK",
+          "cachedResultUrl": "https://github.com/RohiRIK"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "CloudJourneyBlog",
+          "mode": "list",
+          "cachedResultName": "CloudJourneyBlog",
+          "cachedResultUrl": "https://github.com/RohiRIK/CloudJourneyBlog"
+        },
+        "filePath": "=projects/n8n-workflows/workflow_backups/{{$('work flow settings').item.json.name}}_{{ $('work flow settings').item.json.id }}.json",
+        "additionalParameters": {}
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        1680,
+        784
+      ],
+      "id": "c1e9e0fa-696d-4464-9498-b7d6ab0babca",
+      "name": "che_exsits_in_github",
+      "webhookId": "76106c41-01a3-431c-9bcf-9620f8bc2a6b",
+      "alwaysOutputData": true,
+      "credentials": {
+        "githubApi": {
+          "id": "qSEsRGukJ4kS0Wum",
+          "name": "GitHub account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "owner": {
+          "__rl": true,
+          "value": "RohiRIK",
+          "mode": "list",
+          "cachedResultName": "RohiRIK",
+          "cachedResultUrl": "https://github.com/RohiRIK"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "CloudJourneyBlog",
+          "mode": "list",
+          "cachedResultName": "CloudJourneyBlog",
+          "cachedResultUrl": "https://github.com/RohiRIK/CloudJourneyBlog"
+        },
+        "filePath": "=projects/n8n-workflows/workflow_backups/{{$('work flow settings').item.json.name}}_{{ $('work flow settings').item.json.id }}.json",
+        "fileContent": "={{ JSON.stringify($('workflow_json').item.json, null, 2) }}",
+        "commitMessage": "=chore: backup n8n automation flow to GitHub {{$('work flow settings').item.json.name}}_{{ $('work flow settings').item.json.id }} to GitHub."
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        1904,
+        880
+      ],
+      "id": "41abe8f3-ffcc-4f20-852d-4a446d7fe1f3",
+      "name": "Crate_Json",
+      "webhookId": "97d0129f-6c17-4e22-88bc-508b7a1a4085",
+      "credentials": {
+        "githubApi": {
+          "id": "qSEsRGukJ4kS0Wum",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "56d51dc6-fbf8-4efa-aeaf-566e36c48df3",
+              "name": "backuped_json",
+              "value": "={{ $('Extract_json_form_github_file').item.json}}",
+              "type": "object"
+            },
+            {
+              "id": "c87b2b40-cb0e-41a5-a2ac-cb9bfcca7dc2",
+              "name": "updated_json",
+              "value": "={{$('workflow_json').item.json}}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2128,
+        688
+      ],
+      "id": "536abf51-e901-4bae-be65-48afa9db6bd6",
+      "name": "jsons_to_compress"
+    },
+    {
+      "parameters": {
+        "operation": "fromJson",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        1904,
+        688
+      ],
+      "id": "5937f224-0c51-4c73-8398-c4f69e446d0a",
+      "name": "Extract_json_form_github_file"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Deeply compares two objects to find differences, skipping specified keys.\n */\nfunction compareObjects(previousState, currentState, keysToIgnore = []) {\n    const diff = {};\n    const previousObj = (previousState && typeof previousState === 'object' && !Array.isArray(previousState)) ? previousState : {};\n    const currentObj = (currentState && typeof currentState === 'object' && !Array.isArray(currentState)) ? currentState : {};\n    const previousKeys = Object.keys(previousObj);\n    const currentKeys = Object.keys(currentObj);\n    const allKeys = new Set([...previousKeys, ...currentKeys]);\n\n    for (const key of allKeys) {\n        if (keysToIgnore.includes(key)) {\n            continue;\n        }\n        const previousValue = previousObj[key];\n        const currentValue = currentObj[key];\n        const inPrevious = previousObj.hasOwnProperty(key);\n        const inCurrent = currentObj.hasOwnProperty(key);\n\n        if (inPrevious && !inCurrent) {\n            diff[key] = { status: 'REMOVED', oldValue: previousValue };\n        } else if (!inPrevious && inCurrent) {\n            diff[key] = { status: 'ADDED', newValue: currentValue };\n        } else if (JSON.stringify(previousValue) !== JSON.stringify(currentValue)) {\n            const isPreviousValueObject = typeof previousValue === 'object' && previousValue !== null && !Array.isArray(previousValue);\n            const isCurrentValueObject = typeof currentValue === 'object' && currentValue !== null && !Array.isArray(currentValue);\n            if (isPreviousValueObject && isCurrentValueObject) {\n                const nestedDiff = compareObjects(previousValue, currentValue, keysToIgnore);\n                if (Object.keys(nestedDiff).length > 0) {\n                    diff[key] = { status: 'MODIFIED', changes: nestedDiff };\n                }\n            } else {\n                diff[key] = { status: 'MODIFIED', oldValue: previousValue, newValue: currentValue };\n            }\n        }\n    }\n    return diff;\n}\n\n// --- Main Execution ---\n\nconst KEYS_TO_IGNORE = ['updatedAt', 'createdAt', 'position', 'versionId', 'meta', 'pinData'];\n\nconst oldJson = $input.item.json.backuped_json;\nconst newJson = $input.item.json.updated_json;\n\n// Normalize the old JSON structure\nconst normalizedOldJson = oldJson.data ? oldJson.data : oldJson;\n\nconst differences = compareObjects(normalizedOldJson, newJson, KEYS_TO_IGNORE);\n\nif (Object.keys(differences).length > 0) {\n    return {\n        update_needed: true,\n        reason: \"Comparison found functional changes. The backup needs to be updated.\",\n        changes: differences\n    };\n} else {\n    return {\n        update_needed: false,\n        reason: \"No functional changes found. The backup is current.\"\n    };\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2352,
+        688
+      ],
+      "id": "86f6fe18-e7fb-43bd-8a6e-933beedeec0f",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8c3abc72-0dc2-4919-ada7-e7a37260a6ec",
+              "leftValue": "={{ $json.update_needed }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2560,
+        688
+      ],
+      "id": "5bbfac4a-3dd1-43f0-910a-f70e651b731c",
+      "name": "If"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        800,
+        1088
+      ],
+      "id": "0b775873-48aa-4c53-b4a4-f72c391613b7",
+      "name": "Wait",
+      "webhookId": "98dcab77-e8be-498c-ab49-4c2a526b1853"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "edit",
+        "owner": {
+          "__rl": true,
+          "value": "RohiRIK",
+          "mode": "list",
+          "cachedResultName": "RohiRIK",
+          "cachedResultUrl": "https://github.com/RohiRIK"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "CloudJourneyBlog",
+          "mode": "list",
+          "cachedResultName": "CloudJourneyBlog",
+          "cachedResultUrl": "https://github.com/RohiRIK/CloudJourneyBlog"
+        },
+        "filePath": "=projects/n8n-workflows/workflow_backups/{{$('work flow settings').item.json.name}}_{{ $('work flow settings').item.json.id }}.json",
+        "fileContent": "={{ JSON.stringify($('workflow_json').item.json, null, 2) }}",
+        "commitMessage": "=chore: update n8n automation flow to GitHub {{$('work flow settings').item.json.name}}_{{ $('work flow settings').item.json.id }} to GitHub."
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        2784,
+        864
+      ],
+      "id": "44fd5663-a7db-483f-b67d-17705ef6edc8",
+      "name": "Edit a file",
+      "webhookId": "e6cd4445-ba05-4e4d-ab7e-c17bc0258862",
+      "credentials": {
+        "githubApi": {
+          "id": "qSEsRGukJ4kS0Wum",
+          "name": "GitHub account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every 15 minutes": {
+      "main": [
+        [
+          {
+            "node": "Get all workflows with tag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get all workflows with tag": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "work flow settings": {
+      "main": [
+        [
+          {
+            "node": "workflow_json",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "workflow_json": {
+      "main": [
+        [
+          {
+            "node": "che_exsits_in_github",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "work flow settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "che_exsits_in_github": {
+      "main": [
+        [
+          {
+            "node": "Extract_json_form_github_file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Crate_Json",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crate_Json": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "jsons_to_compress": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract_json_form_github_file": {
+      "main": [
+        [
+          {
+            "node": "jsons_to_compress",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Edit a file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit a file": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "createdAt": "2025-06-15T13:36:45.752Z",
+  "updatedAt": "2025-07-18T10:31:43.637Z"
+}
