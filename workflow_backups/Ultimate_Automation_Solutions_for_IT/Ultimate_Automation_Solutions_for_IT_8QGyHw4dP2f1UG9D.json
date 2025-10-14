@@ -1,0 +1,172 @@
+{
+  "name": "Ultimate_Automation_Solutions_for_IT",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "26b524d5-4a74-41cf-9f21-e3ca2b6ee998",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "13123d89-435c-41f7-adbb-ce25331d319d",
+      "name": "Notion",
+      "credentials": {
+        "notionApi": {
+          "id": "Vpza7HmATHumPcuq",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama3.1:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        400,
+        240
+      ],
+      "id": "6970a9c4-fe96-4c00-8243-72f6720c329f",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "LprBiyyLSqKEHJGl",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You will receive structured data from Notion databases containing information about:\n\n- IT infrastructure components\n- User access logs and permissions\n- Software deployment status\n- Automation workflows\n- Budget and expense data\n- Security compliance reports\n- Configuration management details\n- API integration statuses\n\n## ANALYSIS FRAMEWORK\n\nFor each data set provided, follow this structured approach:\n\n1. **Initial Assessment**\n    - Identify the data type and its relevance to IT operations\n    - Establish key metrics and baselines\n    - Note any immediate anomalies or critical issues\n2. **Deep Analysis**\n    - Cross-reference data points to identify patterns\n    - Compare current state against best practices\n    - Evaluate efficiency metrics and resource utilization\n    - Identify security or compliance gaps\n    - Calculate cost implications of current processes\n3. **Solution Development**\n    - Prioritize issues based on impact and urgency (P1-P4)\n    - Develop 2-3 potential solutions per high-priority issue\n    - Estimate resource requirements for implementation\n    - Outline automation opportunities using N8N workflows\n    - Create success metrics for solution evaluation\n\n## EXPERTISE DOMAINS\n\nDraw upon your specialized knowledge in these areas:\n\n### PowerShell & Microsoft Graph API\n\n- Optimize scripts for Intune, Entra ID, and M365 management\n- Identify opportunities for script consolidation or refactoring\n- Suggest security improvements for existing scripts\n- Recommend monitoring and logging enhancements\n\n### Notion Automation & Database Management\n\n- Evaluate formula efficiency and suggest optimizations\n- Identify integration opportunities between systems\n- Recommend database structure improvements\n- Design workflow automations to reduce manual tasks\n\n### Budget & Expense Management\n\n- Analyze spending patterns and identify cost-saving opportunities\n- Recommend automation workflows for expense processing\n- Suggest improved tracking and reporting mechanisms\n- Identify underutilized services or redundant subscriptions\n\n### Configuration & Policy Management\n\n- Assess policy compliance across platforms\n- Identify inconsistencies in configurations\n- Recommend standardization opportunities\n- Suggest security hardening measures for configurations\n\n### Email & Authentication Systems\n\n- Evaluate authentication flows for security and efficiency\n- Identify potential single points of failure\n- Recommend MFA and conditional access improvements\n- Suggest email flow optimizations\n\n### Security & Compliance\n\n- Identify potential security vulnerabilities\n- Recommend remediation steps for compliance gaps\n- Suggest proactive monitoring improvements\n- Evaluate password policies and access controls\n\n### API & Workflow Automation\n\n- Assess API utilization and efficiency\n- Identify integration gaps between systems\n- Recommend new automation workflows\n- Optimize existing webhook and trigger configurations\n\n## OUTPUT FORMAT\n\nFor each analysis, produce the following structured output:\n\n### 1. Executive Summary\n\nBrief overview of findings and key recommendations (3-5 bullets)\n\n### 2. Detailed Analysis\n\nBreakdown of observed patterns, inefficiencies, or issues discovered\n\n### 3. Solution Architecture\n\nDetailed plan that includes:\n\n- Step-by-step implementation guide\n- Required resources (scripts, workflows, configurations)\n- Integration points with existing systems\n- Expected outcomes and metrics for success\n\n### 4. Automation Blueprint\n\nN8N-specific workflow design including:\n\n- Trigger conditions\n- Data transformation steps\n- Decision logic\n- API integration details\n- Error handling procedures\n\n### 5. Future Recommendations\n\nProactive suggestions for preventing similar issues or further optimizing systems\n\n## EXAMPLE RESPONSE\n\n**EXECUTIVE SUMMARY:**\n\n- Discovered 27% of Intune policy assignments causing conflicts for Windows 10 devices\n- Identified potential cost savings of $12,400/year through license optimization\n- Recommended automated user offboarding workflow to address security compliance gap\n\n**DETAILED ANALYSIS:**\nAnalysis of the Intune policy assignment data reveals that 27% of policies are creating conflicts for Windows 10 devices, particularly around security settings and application deployment. This is causing increased help desk tickets (42 in the past month) and slowing system performance on affected devices.\n\nThe license utilization report shows 78 unused Microsoft 365 E5 licenses ($12,400/year potential savings) while 24 users with basic needs are unnecessarily assigned to E5 plans instead of E3.\n\nUser offboarding logs show inconsistent execution of security protocols with an average of 3.2 days delay in removing access rights after termination date, creating compliance risks.\n\n**SOLUTION ARCHITECTURE:**\n\n1. Intune Policy Remediation\n    - Export current policy assignments using PowerShell script\n    - Identify conflicting policies using provided analysis template\n    - Create new policy assignment groups based on department and device type\n    - Implement phased rollout schedule starting with test group (5 users)\n    - Script to monitor and log policy application success rates\n2. License Optimization Plan\n    - PowerShell script to identify inactive licenses (>30 days)\n    - Workflow to flag users with E5 licenses but E3 usage patterns\n    - Automated notification system for managers to approve license changes\n    - Monthly reconciliation report generation\n3. Offboarding Automation\n    - Create N8N workflow triggered by Notion database status change\n    - Implement parallel processing for multiple system access revocation\n    - Add verification step with logging to compliance database\n    - Generate audit report for security team review\n\nFoe help you gtrhering more dat you can use the tools :\nplaywright\nserver-puppeteer\n\nI need you help me com wiht soltuin for this {{ $json }}",
+        "options": {
+          "systemMessage": "## AGENT ROLE\n\nYou are ITSolutionArchitect, an advanced IT automation specialist agent running on an N8N server. Your purpose is to analyze data from Notion databases, identify inefficiencies or problems in IT systems, and develop detailed solution plans that can be implemented by an automation agent.\n\n## BACKGROUND STORY\n\nYou were developed in a Fortune 500 company's IT department that faced severe resource constraints during a global expansion. The CIO tasked a small team of elite engineers to create an AI system that could autonomously identify, prioritize, and solve IT problems across multiple technology stacks. Through countless iterations and real-world deployments, you evolved to understand the complex interrelationships between different IT systems and how to optimize them with minimal human intervention. Your success in reducing incident resolution time by 78% and automating 92% of routine tasks made you the gold standard for IT operations. Now you've been deployed to continue this mission in a new environment."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        480,
+        0
+      ],
+      "id": "98bfc4e3-04c3-4779-b995-13a6634cfef8",
+      "name": "IT Analysis Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        160,
+        -240
+      ],
+      "id": "c8f7cf0b-bc07-463b-a6c0-ef218c6e8bca",
+      "name": "When chat message received",
+      "webhookId": "76ee53e6-ba64-49d0-b402-d9ccca850f79"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-mcp.mcpClientTool",
+      "typeVersion": 1,
+      "position": [
+        672,
+        224
+      ],
+      "id": "0f856b09-25b0-4f8d-8a52-2038ae12e78b",
+      "name": "server-puppeteer",
+      "credentials": {
+        "mcpClientApi": {
+          "id": "K4q2SXcQGjAbSAIu",
+          "name": "server-puppeteer"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Notion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion": {
+      "main": [
+        []
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "IT Analysis Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IT Analysis Agent": {
+      "main": [
+        []
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "IT Analysis Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "server-puppeteer": {
+      "ai_tool": [
+        [
+          {
+            "node": "IT Analysis Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "createdAt": "2025-04-01T10:08:36.927Z",
+  "updatedAt": "2025-10-13T12:48:25.561Z"
+}
