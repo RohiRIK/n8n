@@ -1,0 +1,335 @@
+{
+  "name": "Break Glass Account Automation for n8n",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "f136e009-ab4b-4b63-b2b1-4161ec3244c5",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1104,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "url": "https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies",
+        "options": {}
+      },
+      "id": "f00e3d34-61ec-4ece-a80e-449fd26e78f9",
+      "name": "Get All CA Policies",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -496,
+        -320
+      ],
+      "credentials": {
+        "oAuth2Api": {
+          "id": "PPtlnj0gOUcXpOuC",
+          "name": "OAuth2_Graph"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "c24e6ec3-ded6-47f1-8a9f-8c60af6e4a2a",
+      "name": "Split CA Policies",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 1,
+      "position": [
+        320,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ !!$json.conditions?.users?.excludeUsers?.find(excludeUser => excludeUser === $('Initialize_emergency_Accounts').item(0).json.emergencyAccount1) }}"
+            }
+          ]
+        }
+      },
+      "id": "27f796d5-056a-40da-9be9-53d9f4abc971",
+      "name": "Check Account 1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        544,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get current policy and emergency account\nconst policy = $input.item(0).json;\nconst emergencyAccount = $('Initialize_emergency_Accounts').item(0).json.emergencyAccount1;\n\n// Create a deep copy of the policy to modify\nconst updatedPolicy = JSON.parse(JSON.stringify(policy));\n\n// Make sure excludeUsers exists\nif (!updatedPolicy.conditions.users.excludeUsers) {\n  updatedPolicy.conditions.users.excludeUsers = [];\n}\n\n// Add emergency account to excluded users if not already present\nif (!updatedPolicy.conditions.users.excludeUsers.includes(emergencyAccount)) {\n  updatedPolicy.conditions.users.excludeUsers.push(emergencyAccount);\n}\n\n// Return the updated policy and original policy id\nreturn [\n  {\n    json: {\n      policyId: policy.id,\n      updatedPolicy: {\n        conditions: {\n          users: {\n            excludeUsers: updatedPolicy.conditions.users.excludeUsers\n          }\n        }\n      }\n    }\n  }\n];"
+      },
+      "id": "c06b5b75-bf3f-490b-9f39-0b349a2e59c1",
+      "name": "Add Account 1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        768,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "url": "=https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies/{{$json.policyId}}",
+        "options": {}
+      },
+      "id": "11de35e0-6f34-4c8e-b0d1-3f01fc7e10a3",
+      "name": "Update Policy (Account 1)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        992,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ !!$json.conditions?.users?.excludeUsers?.find(excludeUser => excludeUser === $('Initialize_emergency_Accounts').item(0).json.emergencyAccount2) }}"
+            }
+          ]
+        }
+      },
+      "id": "d2b017df-5290-4bff-a3db-b73d2b3a966b",
+      "name": "Check Account 2",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get current policy and emergency account\nconst policy = $input.item(0).json;\nconst emergencyAccount = $('Initialize_emergency_Accounts').item(0).json.emergencyAccount2;\n\n// Create a deep copy of the policy to modify\nconst updatedPolicy = JSON.parse(JSON.stringify(policy));\n\n// Make sure excludeUsers exists\nif (!updatedPolicy.conditions.users.excludeUsers) {\n  updatedPolicy.conditions.users.excludeUsers = [];\n}\n\n// Add emergency account to excluded users if not already present\nif (!updatedPolicy.conditions.users.excludeUsers.includes(emergencyAccount)) {\n  updatedPolicy.conditions.users.excludeUsers.push(emergencyAccount);\n}\n\n// Return the updated policy and original policy id\nreturn [\n  {\n    json: {\n      policyId: policy.id,\n      updatedPolicy: {\n        conditions: {\n          users: {\n            excludeUsers: updatedPolicy.conditions.users.excludeUsers\n          }\n        }\n      }\n    }\n  }\n];"
+      },
+      "id": "27edad75-7a70-459f-9ad7-f6f14a661416",
+      "name": "Add Account 2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1424,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "url": "=https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies/{{$json.policyId}}",
+        "options": {}
+      },
+      "id": "c3238002-8977-4da3-962f-2e3af02ae9bf",
+      "name": "Update Policy (Account 2)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        1648,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c57f1bee-0932-4993-8d88-fbfead30d892",
+              "name": "emergencyAccount1",
+              "value": "=f97eb5e9-54b7-406a-8de5-6cac61de46b3",
+              "type": "string"
+            },
+            {
+              "id": "35a58f3b-0e54-4ca5-a6a2-58abe7bdd6db",
+              "name": "emergencyAccount2",
+              "value": "=28e530cb-b60f-43d5-8784-871992ae93ef",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -768,
+        -48
+      ],
+      "id": "ff6b0ea9-98a7-4033-bb0e-53740da8da16",
+      "name": "Initialize_varibles"
+    },
+    {
+      "parameters": {
+        "url": "https://login.microsoftonline.com/ea024e0e-d2be-4d1b-95a5-ae77e697a5c5/oauth2/v2.0/token",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "microsoftOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/x-www-form-urlencoded"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -304,
+        -48
+      ],
+      "id": "37e7000a-6730-49ee-84e1-3bf61bbca4ed",
+      "name": "HTTP Request",
+      "credentials": {
+        "microsoftOAuth2Api": {
+          "id": "Qzd4Cxwp9C0oNJgD",
+          "name": "Microsoft account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Initialize_varibles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All CA Policies": {
+      "main": [
+        []
+      ]
+    },
+    "Split CA Policies": {
+      "main": [
+        [
+          {
+            "node": "Check Account 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Account 1": {
+      "main": [
+        [
+          {
+            "node": "Add Account 1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Account 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Account 1": {
+      "main": [
+        [
+          {
+            "node": "Update Policy (Account 1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Policy (Account 1)": {
+      "main": [
+        [
+          {
+            "node": "Check Account 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Account 2": {
+      "main": [
+        [
+          {
+            "node": "Add Account 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Account 2": {
+      "main": [
+        [
+          {
+            "node": "Update Policy (Account 2)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initialize_varibles": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Split CA Policies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Jerusalem",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "createdAt": "2025-04-20T12:48:16.695Z",
+  "updatedAt": "2025-10-13T12:46:21.653Z"
+}
