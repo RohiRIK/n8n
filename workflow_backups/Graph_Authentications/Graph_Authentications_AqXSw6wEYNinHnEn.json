@@ -1,0 +1,92 @@
+{
+  "name": "Graph_Authentications",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "07749cff-9554-4eea-9951-be3dd6ae5010",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "url": "https://graph.microsoft.com/v1.0/users",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        528,
+        144
+      ],
+      "id": "dcaf6cd4-9bfc-40eb-8681-2760e355e0d1",
+      "name": "HTTP Request",
+      "credentials": {
+        "oAuth2Api": {
+          "id": "SwX6WKa4Jiqn10uw",
+          "name": "Graph_accse"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "user": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-base.microsoftEntra",
+      "typeVersion": 1,
+      "position": [
+        528,
+        -208
+      ],
+      "id": "0bf6bb32-5793-49d8-97f4-911e259dde72",
+      "name": "Get user",
+      "credentials": {
+        "microsoftEntraOAuth2Api": {
+          "id": "aHZ43daJfChLC1HX",
+          "name": "Microsoft Entra ID (Azure Active Directory) account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get user",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get user": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "createdAt": "2025-07-12T10:08:01.265Z",
+  "updatedAt": "2025-10-13T12:47:50.398Z"
+}
