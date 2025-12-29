@@ -43,10 +43,20 @@ error_exit() {
 # Check if n8n is running
 check_n8n() {
   log "Checking n8n connectivity..."
-  if ! curl -sf "${N8N_API_URL}/healthz" > /dev/null 2>&1; then
-    error_exit "n8n is not responding at ${N8N_API_URL}. Is it running?"
+
+  # Find running n8n container
+  local n8n_container=$(docker ps --filter "name=n8n_n8n" --filter "status=running" --format "{{.ID}}" | head -1)
+
+  if [ -z "$n8n_container" ]; then
+    error_exit "n8n container not found or not running"
   fi
-  log "n8n is running and accessible"
+
+  # Check health from inside container
+  if ! docker exec "$n8n_container" wget -qO- http://localhost:5678/healthz > /dev/null 2>&1; then
+    error_exit "n8n is not responding. Is it healthy?"
+  fi
+
+  log "n8n is running and accessible (container: ${n8n_container:0:12})"
 }
 
 # Fetch workflows
@@ -54,10 +64,19 @@ fetch_workflows() {
   log "Fetching workflows from n8n..."
   cd "$REPO_ROOT"
 
-  export N8N_API_URL
-  export N8N_API_TOKEN
+  # Run Python script with docker network access
+  local n8n_api_url="http://localhost:5678"
 
-  if python3 scripts/fetch_n8n_workflows.py >> "$LOG_FILE" 2>&1; then
+  if docker run --rm \
+    --network container:$(docker ps --filter "name=n8n_n8n" --filter "status=running" --format "{{.ID}}" | head -1) \
+    --user "$(id -u):$(id -g)" \
+    -v "$REPO_ROOT:/workspace" \
+    -w /workspace \
+    -e N8N_API_URL="$n8n_api_url" \
+    -e N8N_API_TOKEN="$N8N_API_TOKEN" \
+    -e HOME=/tmp \
+    python:3.11-slim \
+    bash -c "pip install --user -q requests && python3 scripts/fetch_n8n_workflows.py" >> "$LOG_FILE" 2>&1; then
     log "Workflows fetched successfully"
     return 0
   else
