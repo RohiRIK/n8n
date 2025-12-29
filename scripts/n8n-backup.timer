@@ -1,0 +1,19 @@
+[Unit]
+Description=N8N Workflow Backup Timer
+Requires=n8n-backup.service
+
+[Timer]
+# Run every 6 hours
+OnCalendar=*-*-* 00,06,12,18:00:00
+
+# Run 5 minutes after boot if missed
+OnBootSec=5min
+
+# Run 5 minutes after last run if computer was sleeping
+Persistent=true
+
+# Randomize start time by up to 2 minutes to avoid exact timing
+RandomizedDelaySec=2min
+
+[Install]
+WantedBy=timers.target

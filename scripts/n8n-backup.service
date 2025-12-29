@@ -1,0 +1,19 @@
+[Unit]
+Description=N8N Workflow Backup Service
+After=network.target
+
+[Service]
+Type=oneshot
+User=rohi
+WorkingDirectory=/home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n
+ExecStart=/home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/scripts/auto_backup.sh
+Environment="N8N_API_URL=http://localhost:5678"
+Environment="N8N_API_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4OWM4NjI5OC1jOTA2LTQ2YjQtOWFlZC0wYzExYjZhYThjNjEiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzY2OTk1Nzg2fQ.Pnf4Ae0hJA-cfW2MvtF03RTpFMfKveYyLen4cigSv8A"
+
+# Restart policy
+StandardOutput=journal
+StandardError=journal
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
