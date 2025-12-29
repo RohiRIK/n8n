@@ -1,0 +1,257 @@
+{
+  "updatedAt": "2025-12-26T21:41:23.393Z",
+  "createdAt": "2025-12-26T21:38:49.095Z",
+  "id": "J5MZSCSYFT83oeIW",
+  "name": "License Assignment Auditor",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        250,
+        300
+      ],
+      "id": "c3742773-69ee-43cc-a7e6-1db49f768e20"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Set configuration\nreturn [{\n  json: {\n    tenantId: $env.MS_TENANT_ID,\n    clientId: $env.MS_CLIENT_ID,\n    unusedDaysThreshold: 30\n  }\n}];"
+      },
+      "name": "Set Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        450,
+        300
+      ],
+      "id": "0b54da33-c003-4cbc-bfc9-e159b8a44509"
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "MS Graph - Get Token",
+          "mode": "name"
+        },
+        "options": {
+          "inputData": {
+            "mode": "json",
+            "jsonData": "={\"tenantId\": \"{{$json.tenantId}}\", \"clientId\": \"{{$json.clientId}}\"}"
+          }
+        }
+      },
+      "name": "Get Token",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        650,
+        300
+      ],
+      "id": "f20ea1e3-0015-4bbe-80dc-7980b0b96f6f"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://graph.microsoft.com/v1.0/subscribedSkus",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$node['Get Token'].json.accessToken}}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "name": "Get SKUs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        850,
+        300
+      ],
+      "id": "dc29901e-bd34-43be-9693-f404deec2a16"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.microsoft.com/v1.0/users?$filter=assignedLicenses/$count ne 0&$select=id,displayName,userPrincipalName,assignedLicenses,signInActivity&$count=true",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$node['Get Token'].json.accessToken}}"
+            },
+            {
+              "name": "ConsistencyLevel",
+              "value": "eventual"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "name": "Get Licensed Users",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1050,
+        300
+      ],
+      "id": "d1999880-1238-4793-98cc-a2432990d55d"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Analyze license usage and identify issues\nconst skus = $node['Get SKUs'].json.value || [];\nconst users = $input.first().json.value || [];\nconst threshold = $node['Set Config'].json.unusedDaysThreshold;\n\nconst issues = [];\nconst skuMap = {};\n\n// Build SKU lookup map\nfor (const sku of skus) {\n  skuMap[sku.skuId] = {\n    name: sku.skuPartNumber,\n    total: sku.prepaidUnits.enabled,\n    consumed: sku.consumedUnits,\n    available: sku.prepaidUnits.enabled - sku.consumedUnits\n  };\n}\n\n// Calculate days since sign-in\nfunction daysAgo(dateString) {\n  if (!dateString) return 9999;\n  const then = new Date(dateString);\n  const now = new Date();\n  return Math.floor((now - then) / (1000 * 60 * 60 * 24));\n}\n\n// Check each licensed user\nfor (const user of users) {\n  const lastSignIn = user.signInActivity?.lastSignInDateTime;\n  const daysSinceSignIn = daysAgo(lastSignIn);\n  \n  // Unused license check\n  if (daysSinceSignIn > threshold) {\n    issues.push({\n      type: 'UNUSED_LICENSE',\n      severity: 'MEDIUM',\n      userId: user.id,\n      displayName: user.displayName,\n      userPrincipalName: user.userPrincipalName,\n      daysSinceSignIn: daysSinceSignIn,\n      licenseCount: user.assignedLicenses.length,\n      timestamp: new Date().toISOString()\n    });\n  }\n  \n  // Multiple licenses check\n  if (user.assignedLicenses.length > 1) {\n    issues.push({\n      type: 'MULTIPLE_LICENSES',\n      severity: 'LOW',\n      userId: user.id,\n      displayName: user.displayName,\n      userPrincipalName: user.userPrincipalName,\n      licenseCount: user.assignedLicenses.length,\n      timestamp: new Date().toISOString()\n    });\n  }\n}\n\n// SKU utilization check\nfor (const [skuId, skuData] of Object.entries(skuMap)) {\n  const utilizationPercent = (skuData.consumed / skuData.total) * 100;\n  \n  if (utilizationPercent < 50 && skuData.consumed > 0) {\n    issues.push({\n      type: 'LOW_SKU_UTILIZATION',\n      severity: 'LOW',\n      skuName: skuData.name,\n      total: skuData.total,\n      consumed: skuData.consumed,\n      available: skuData.available,\n      utilizationPercent: Math.round(utilizationPercent),\n      timestamp: new Date().toISOString()\n    });\n  }\n}\n\nreturn [{\n  json: {\n    issues: issues,\n    totalIssues: issues.length,\n    unusedLicenses: issues.filter(i => i.type === 'UNUSED_LICENSE').length,\n    totalLicensedUsers: users.length,\n    totalSkus: skus.length,\n    summary: {\n      highSeverity: issues.filter(i => i.severity === 'HIGH').length,\n      mediumSeverity: issues.filter(i => i.severity === 'MEDIUM').length,\n      lowSeverity: issues.filter(i => i.severity === 'LOW').length\n    }\n  }\n}];"
+      },
+      "name": "Analyze Usage",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1250,
+        300
+      ],
+      "id": "fdee1d46-2189-40d1-9db7-7dbab60a1454"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Format license audit report\nconst data = $input.first().json;\nconst issues = data.issues;\n\nlet message = `\ud83d\udcca *Daily License Audit Report*\\n\\n`;\nmessage += `Total Issues: ${data.totalIssues}\\n`;\nmessage += `Licensed Users: ${data.totalLicensedUsers}\\n`;\nmessage += `SKUs: ${data.totalSkus}\\n\\n`;\n\nif (data.totalIssues === 0) {\n  message += `\u2705 No license issues detected`;\n} else {\n  message += `*Issue Breakdown*\\n`;\n  message += `\u2022 High: ${data.summary.highSeverity}\\n`;\n  message += `\u2022 Medium: ${data.summary.mediumSeverity}\\n`;\n  message += `\u2022 Low: ${data.summary.lowSeverity}\\n\\n`;\n  \n  // Group issues by type\n  const unusedLicenses = issues.filter(i => i.type === 'UNUSED_LICENSE');\n  const lowUtilization = issues.filter(i => i.type === 'LOW_SKU_UTILIZATION');\n  \n  if (unusedLicenses.length > 0) {\n    message += `\u26a0\ufe0f *Unused Licenses (${unusedLicenses.length})*\\n`;\n    unusedLicenses.slice(0, 5).forEach(issue => {\n      message += `\u2022 ${issue.displayName} - ${issue.daysSinceSignIn} days inactive\\n`;\n    });\n    if (unusedLicenses.length > 5) {\n      message += `... and ${unusedLicenses.length - 5} more\\n`;\n    }\n    message += `\\n`;\n  }\n  \n  if (lowUtilization.length > 0) {\n    message += `\ud83d\udcc9 *Low SKU Utilization (${lowUtilization.length})*\\n`;\n    lowUtilization.forEach(issue => {\n      message += `\u2022 ${issue.skuName}: ${issue.utilizationPercent}% used (${issue.consumed}/${issue.total})\\n`;\n    });\n  }\n}\n\nmessage += `\\nTimestamp: ${new Date().toISOString()}`;\n\nreturn [{\n  json: {\n    channel: '#license-alerts',\n    text: message,\n    blocks: [\n      {\n        type: 'header',\n        text: {\n          type: 'plain_text',\n          text: '\ud83d\udcca License Audit Report',\n          emoji: true\n        }\n      },\n      {\n        type: 'section',\n        text: {\n          type: 'mrkdwn',\n          text: message\n        }\n      }\n    ]\n  }\n}];"
+      },
+      "name": "Format Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1450,
+        300
+      ],
+      "id": "f9aefd7b-a55e-4dc5-a00e-5f6bcafc47be"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Config": {
+      "main": [
+        [
+          {
+            "node": "Get Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Token": {
+      "main": [
+        [
+          {
+            "node": "Get SKUs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Licensed Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get SKUs": {
+      "main": [
+        [
+          {
+            "node": "Analyze Usage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Licensed Users": {
+      "main": [
+        [
+          {
+            "node": "Analyze Usage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Usage": {
+      "main": [
+        [
+          {
+            "node": "Format Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "1c2e079c-cc84-41f7-a54c-7a3d9c737b86",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-12-26T21:38:49.095Z",
+      "createdAt": "2025-12-26T21:38:49.095Z",
+      "role": "workflow:owner",
+      "workflowId": "J5MZSCSYFT83oeIW",
+      "projectId": "5zyza4bMeIQj3EHD"
+    }
+  ],
+  "activeVersion": null,
+  "tags": []
+}

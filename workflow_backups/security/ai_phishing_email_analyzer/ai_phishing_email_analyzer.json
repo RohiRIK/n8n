@@ -1,0 +1,431 @@
+{
+  "updatedAt": "2025-12-26T21:41:44.387Z",
+  "createdAt": "2025-12-26T21:38:49.202Z",
+  "id": "0HkjLWdtbx52ZMjf",
+  "name": "AI Phishing Email Analyzer",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        250,
+        300
+      ],
+      "id": "7bee57af-bedc-4e96-82b0-42f04fbe409e"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return [{\n  json: {\n    tenantId: $env.MS_TENANT_ID,\n    clientId: $env.MS_CLIENT_ID,\n    confidenceThreshold: 85\n  }\n}];"
+      },
+      "name": "Set Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        450,
+        300
+      ],
+      "id": "1c34b155-5c8b-4667-810d-b85a34004515"
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "MS Graph - Get Token",
+          "mode": "name"
+        },
+        "options": {
+          "inputData": {
+            "mode": "json",
+            "jsonData": "={\"tenantId\": \"{{$json.tenantId}}\", \"clientId\": \"{{$json.clientId}}\"}"
+          }
+        }
+      },
+      "name": "Get Token",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        650,
+        300
+      ],
+      "id": "08c45250-2d65-4367-9386-0a0d550b6a31"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.microsoft.com/v1.0/security/alerts_v2?$filter=category eq 'Email' and createdDateTime gt {{$now.minus(15, 'minutes').toISO()}}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$node['Get Token'].json.accessToken}}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "name": "Get Email Alerts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        850,
+        300
+      ],
+      "id": "9c334d19-9a39-42f0-81b6-647f630d14a9"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Extract email details from security alerts\nconst alerts = $input.first().json.value || [];\nconst emailAlerts = [];\n\nfor (const alert of alerts) {\n  // Find email evidence in alert\n  const emailEvidence = alert.evidence?.find(\n    e => e['@odata.type'] === '#microsoft.graph.security.emailEvidence'\n  );\n  \n  if (emailEvidence) {\n    emailAlerts.push({\n      alertId: alert.id,\n      severity: alert.severity,\n      subject: emailEvidence.subject || 'N/A',\n      sender: emailEvidence.sender?.emailAddress || 'Unknown',\n      recipient: emailEvidence.recipient?.emailAddress || 'Unknown',\n      bodyPreview: emailEvidence.bodyPreview || '',\n      urls: emailEvidence.urls || [],\n      attachments: emailEvidence.attachments?.map(a => a.fileName) || [],\n      receivedDateTime: emailEvidence.receivedDateTime,\n      networkMessageId: emailEvidence.networkMessageId\n    });\n  }\n}\n\nreturn emailAlerts.map(e => ({json: e}));"
+      },
+      "name": "Extract Email Details",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1050,
+        300
+      ],
+      "id": "d2826fea-7f3e-4bd0-901b-71cd06174ca5"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Prepare LLM analysis prompt\nconst email = $input.first().json;\n\nconst prompt = `Analyze this email for phishing indicators:\n\n**Email Details:**\n- Subject: ${email.subject}\n- Sender: ${email.sender}\n- Recipient: ${email.recipient}\n- Body Preview: ${email.bodyPreview}\n- URLs: ${email.urls.join(', ') || 'None'}\n- Attachments: ${email.attachments.join(', ') || 'None'}\n\n**Analysis Instructions:**\nEvaluate for phishing based on:\n1. Sender authenticity (domain spoofing, typosquatting)\n2. Urgency or pressure tactics\n3. Suspicious links or redirects\n4. Grammar and spelling errors\n5. Request for sensitive information\n6. Unexpected attachments\n\n**Required Response Format (JSON only):**\n{\n  \"isPhishing\": true/false,\n  \"confidence\": 0-100,\n  \"severity\": \"low/medium/high/critical\",\n  \"indicators\": [\"list of specific indicators found\"],\n  \"reasoning\": \"detailed explanation of analysis\",\n  \"recommendation\": \"quarantine/allow/review\"\n}\n\nRespond with ONLY the JSON object, no additional text.`;\n\nreturn [{\n  json: {\n    prompt: prompt,\n    emailData: email\n  }\n}];"
+      },
+      "name": "Prepare LLM Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1250,
+        300
+      ],
+      "id": "f13e1973-62fd-4d7e-a70f-43e97a704c8e"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "gpt-4"
+            },
+            {
+              "name": "messages",
+              "value": "=[{\"role\": \"user\", \"content\": \"{{$json.prompt}}\"}]"
+            },
+            {
+              "name": "temperature",
+              "value": "0.1"
+            },
+            {
+              "name": "response_format",
+              "value": "={\"type\": \"json_object\"}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "name": "LLM Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1450,
+        300
+      ],
+      "notes": "This node uses OpenAI API. Can be replaced with Claude, Gemini, or local Ollama. See documentation for alternative configurations.",
+      "id": "6f0c30be-3b73-47a3-9e99-1d56759306ff"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Universal LLM response parser\n// Works with OpenAI, Claude, Gemini, Ollama, and other LLM providers\n\nconst response = $input.first().json;\nconst emailData = $node['Prepare LLM Prompt'].json.emailData;\n\nfunction extractJSON(llmResponse) {\n  let text;\n  \n  // Handle different LLM response formats\n  if (llmResponse.choices?.[0]?.message?.content) {\n    // OpenAI format\n    text = llmResponse.choices[0].message.content;\n  } else if (llmResponse.content?.[0]?.text) {\n    // Claude format\n    text = llmResponse.content[0].text;\n  } else if (llmResponse.candidates?.[0]?.content?.parts?.[0]?.text) {\n    // Gemini format\n    text = llmResponse.candidates[0].content.parts[0].text;\n  } else if (llmResponse.response) {\n    // Ollama format\n    text = llmResponse.response;\n  } else {\n    // Fallback\n    text = llmResponse.text || JSON.stringify(llmResponse);\n  }\n  \n  // Clean markdown code blocks\n  text = text.replace(/```json\\n?|```\\n?/g, '').trim();\n  \n  // Extract JSON object\n  const jsonMatch = text.match(/\\{[\\s\\S]*\\}/);\n  const jsonText = jsonMatch ? jsonMatch[0] : text;\n  \n  return JSON.parse(jsonText);\n}\n\ntry {\n  const analysis = extractJSON(response);\n  \n  return [{\n    json: {\n      alertId: emailData.alertId,\n      email: emailData,\n      aiAnalysis: analysis,\n      isPhishing: analysis.isPhishing,\n      confidence: analysis.confidence,\n      severity: analysis.severity,\n      indicators: analysis.indicators,\n      reasoning: analysis.reasoning,\n      recommendation: analysis.recommendation,\n      timestamp: new Date().toISOString()\n    }\n  }];\n} catch (error) {\n  // Fallback for parsing errors\n  return [{\n    json: {\n      alertId: emailData.alertId,\n      email: emailData,\n      aiAnalysis: { error: error.message },\n      isPhishing: false,\n      confidence: 0,\n      severity: 'low',\n      recommendation: 'manual_review',\n      reasoning: `AI analysis failed: ${error.message}`,\n      timestamp: new Date().toISOString()\n    }\n  }];\n}"
+      },
+      "name": "Parse AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1650,
+        300
+      ],
+      "id": "b2fd4232-50e7-4dad-8bab-e8b9a1843739"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition1",
+              "leftValue": "={{$json.isPhishing}}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            },
+            {
+              "id": "condition2",
+              "leftValue": "={{$json.confidence}}",
+              "rightValue": "={{$node['Set Config'].json.confidenceThreshold}}",
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "IF High Confidence Phishing",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1850,
+        300
+      ],
+      "id": "d013e778-80b3-4a44-bdc8-62963b1200a3"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.microsoft.com/v1.0/security/alerts_v2/{{$json.alertId}}/remediation",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$node['Get Token'].json.accessToken}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "quarantine"
+            },
+            {
+              "name": "reason",
+              "value": "=AI detected phishing with {{$json.confidence}}% confidence"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json",
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Quarantine Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2050,
+        200
+      ],
+      "id": "8a8eb6a1-4da0-4742-95af-fdde6f208e13"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Format phishing detection alert\nconst data = $input.first().json;\nconst analysis = data.aiAnalysis;\nconst email = data.email;\n\nlet message = `\ud83c\udfa3 *AI Phishing Detection*\\n\\n`;\nmessage += `*Email Details:*\\n`;\nmessage += `\u2022 Subject: ${email.subject}\\n`;\nmessage += `\u2022 Sender: ${email.sender}\\n`;\nmessage += `\u2022 Recipient: ${email.recipient}\\n\\n`;\n\nmessage += `*AI Analysis:*\\n`;\nmessage += `\u2022 Phishing: ${data.isPhishing ? '\u2705 YES' : '\u274c NO'}\\n`;\nmessage += `\u2022 Confidence: ${data.confidence}%\\n`;\nmessage += `\u2022 Severity: ${data.severity.toUpperCase()}\\n`;\nmessage += `\u2022 Recommendation: ${data.recommendation.toUpperCase()}\\n\\n`;\n\nif (analysis.indicators && analysis.indicators.length > 0) {\n  message += `*Indicators Found:*\\n`;\n  analysis.indicators.forEach(indicator => {\n    message += `\u2022 ${indicator}\\n`;\n  });\n  message += `\\n`;\n}\n\nmessage += `*AI Reasoning:*\\n${analysis.reasoning}\\n\\n`;\n\nif (data.confidence >= $node['Set Config'].json.confidenceThreshold && data.isPhishing) {\n  message += `\u26a0\ufe0f *Action Taken:* Email quarantined automatically\\n`;\n} else {\n  message += `\ud83d\udccb *Action Required:* Manual review recommended\\n`;\n}\n\nmessage += `\\nTimestamp: ${data.timestamp}`;\n\nreturn [{\n  json: {\n    channel: '#security-alerts',\n    text: message,\n    blocks: [\n      {\n        type: 'header',\n        text: {\n          type: 'plain_text',\n          text: '\ud83c\udfa3 AI Phishing Detection',\n          emoji: true\n        }\n      },\n      {\n        type: 'section',\n        text: {\n          type: 'mrkdwn',\n          text: message\n        }\n      }\n    ]\n  }\n}];"
+      },
+      "name": "Format Alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2050,
+        400
+      ],
+      "id": "2489303d-4734-4421-98a1-d8338414f7be"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Config": {
+      "main": [
+        [
+          {
+            "node": "Get Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Token": {
+      "main": [
+        [
+          {
+            "node": "Get Email Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Email Alerts": {
+      "main": [
+        [
+          {
+            "node": "Extract Email Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Email Details": {
+      "main": [
+        [
+          {
+            "node": "Prepare LLM Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare LLM Prompt": {
+      "main": [
+        [
+          {
+            "node": "LLM Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM Analysis": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Response": {
+      "main": [
+        [
+          {
+            "node": "IF High Confidence Phishing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF High Confidence Phishing": {
+      "main": [
+        [
+          {
+            "node": "Quarantine Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quarantine Email": {
+      "main": [
+        [
+          {
+            "node": "Format Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "93dc5b31-302b-484c-b8b9-ea03a52bec70",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-12-26T21:38:49.202Z",
+      "createdAt": "2025-12-26T21:38:49.202Z",
+      "role": "workflow:owner",
+      "workflowId": "0HkjLWdtbx52ZMjf",
+      "projectId": "5zyza4bMeIQj3EHD"
+    }
+  ],
+  "activeVersion": null,
+  "tags": []
+}

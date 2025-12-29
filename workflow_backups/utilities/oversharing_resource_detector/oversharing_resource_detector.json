@@ -1,0 +1,393 @@
+{
+  "updatedAt": "2025-12-26T21:41:30.045Z",
+  "createdAt": "2025-12-26T21:38:49.121Z",
+  "id": "vhCGdhmE66UQxkF5",
+  "name": "Oversharing Resource Detector",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 * * *"
+            }
+          ]
+        }
+      },
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        250,
+        300
+      ],
+      "id": "588fb943-298c-4152-9e88-546512455faf"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return [{\n  json: {\n    tenantId: $env.MS_TENANT_ID,\n    clientId: $env.MS_CLIENT_ID\n  }\n}];"
+      },
+      "name": "Set Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        450,
+        300
+      ],
+      "id": "15c435ac-2d43-483e-a1f1-18770b11876d"
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "MS Graph - Get Token",
+          "mode": "name"
+        },
+        "options": {
+          "inputData": {
+            "mode": "json",
+            "jsonData": "={\"tenantId\": \"{{$json.tenantId}}\", \"clientId\": \"{{$json.clientId}}\"}"
+          }
+        }
+      },
+      "name": "Get Token",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        650,
+        300
+      ],
+      "id": "232d93cd-1c01-4a26-908b-7d535812cf72"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://graph.microsoft.com/v1.0/sites?search=*",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$node['Get Token'].json.accessToken}}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "name": "Get Sites",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        850,
+        300
+      ],
+      "id": "9abb1eaf-af08-4cd3-8993-b3cc0c6c26b1"
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "name": "Loop Sites",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1050,
+        300
+      ],
+      "id": "c98bb344-76bd-40e0-9049-ce8e95ee3594"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.microsoft.com/v1.0/sites/{{$json.id}}/permissions",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$node['Get Token'].json.accessToken}}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json",
+              "responsePropertyName": "permissions"
+            }
+          }
+        }
+      },
+      "name": "Get Site Permissions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1250,
+        300
+      ],
+      "id": "e873cebc-a547-4eeb-a5cc-4cb4dd8570a2"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.microsoft.com/v1.0/sites/{{$json.id}}/drives",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$node['Get Token'].json.accessToken}}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "name": "Get Site Drives",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1250,
+        450
+      ],
+      "id": "85645043-4125-49ee-a11c-3b115bca9f11"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Detect oversharing in site permissions and drives\nconst siteData = $node['Loop Sites'].json;\nconst permissions = $input.item(0).json.permissions?.value || [];\nconst drives = $input.item(1).json.value || [];\nconst overshared = [];\n\n// Check site-level permissions\nfor (const perm of permissions) {\n  // Anonymous link detection\n  if (perm.link?.scope === 'anonymous') {\n    overshared.push({\n      type: 'ANONYMOUS_LINK',\n      severity: 'HIGH',\n      resourceType: 'site',\n      resourceName: siteData.displayName || siteData.name,\n      resourceId: siteData.id,\n      linkUrl: perm.link.webUrl,\n      linkType: perm.link.type,\n      timestamp: new Date().toISOString()\n    });\n  }\n  \n  // External sharing detection\n  if (perm.grantedToV2?.user?.email && perm.grantedToV2.user.email.includes('@external')) {\n    overshared.push({\n      type: 'EXTERNAL_SHARING',\n      severity: 'MEDIUM',\n      resourceType: 'site',\n      resourceName: siteData.displayName || siteData.name,\n      resourceId: siteData.id,\n      sharedWith: perm.grantedToV2.user.email,\n      roles: perm.roles || [],\n      timestamp: new Date().toISOString()\n    });\n  }\n  \n  // Everyone/organization-wide sharing\n  if (perm.grantedToIdentitiesV2?.some(id => id.user?.displayName === 'Everyone')) {\n    overshared.push({\n      type: 'EVERYONE_SHARING',\n      severity: 'HIGH',\n      resourceType: 'site',\n      resourceName: siteData.displayName || siteData.name,\n      resourceId: siteData.id,\n      roles: perm.roles || [],\n      timestamp: new Date().toISOString()\n    });\n  }\n}\n\n// Check drive-level sharing\nfor (const drive of drives) {\n  if (drive.sharingCapabilities?.external === 'enabled') {\n    overshared.push({\n      type: 'DRIVE_EXTERNAL_SHARING_ENABLED',\n      severity: 'MEDIUM',\n      resourceType: 'drive',\n      resourceName: `${siteData.displayName} - ${drive.name}`,\n      resourceId: drive.id,\n      siteId: siteData.id,\n      timestamp: new Date().toISOString()\n    });\n  }\n}\n\nreturn overshared.map(o => ({json: o}));"
+      },
+      "name": "Detect Oversharing",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1450,
+        375
+      ],
+      "id": "90d31206-7d9c-429f-8df9-485538c4b085"
+    },
+    {
+      "parameters": {},
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        1650,
+        375
+      ],
+      "id": "914a9458-472d-4e7c-9532-bbbbf192333e"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition1",
+              "leftValue": "={{$json.type}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "IF Oversharing Detected",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1850,
+        375
+      ],
+      "id": "bcf7c883-f9e5-4f87-8ebb-078b6759f57c"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Aggregate all oversharing detections\nconst allDetections = $input.all().map(item => item.json);\n\nif (allDetections.length === 0) {\n  return [{\n    json: {\n      channel: '#security-alerts',\n      text: '\u2705 No oversharing detected in daily scan',\n      hasIssues: false\n    }\n  }];\n}\n\n// Group by severity and type\nconst bySeverity = {\n  HIGH: allDetections.filter(d => d.severity === 'HIGH'),\n  MEDIUM: allDetections.filter(d => d.severity === 'MEDIUM'),\n  LOW: allDetections.filter(d => d.severity === 'LOW')\n};\n\nconst byType = {};\nfor (const detection of allDetections) {\n  byType[detection.type] = (byType[detection.type] || 0) + 1;\n}\n\nlet message = `\ud83d\udd13 *Oversharing Detection Report*\\n\\n`;\nmessage += `Total Issues: ${allDetections.length}\\n`;\nmessage += `\u2022 High Severity: ${bySeverity.HIGH.length}\\n`;\nmessage += `\u2022 Medium Severity: ${bySeverity.MEDIUM.length}\\n`;\nmessage += `\u2022 Low Severity: ${bySeverity.LOW.length}\\n\\n`;\n\nmessage += `*Issue Types*\\n`;\nfor (const [type, count] of Object.entries(byType)) {\n  message += `\u2022 ${type.replace(/_/g, ' ')}: ${count}\\n`;\n}\nmessage += `\\n`;\n\n// Show top HIGH severity issues\nif (bySeverity.HIGH.length > 0) {\n  message += `\u26a0\ufe0f *Critical Issues*\\n`;\n  bySeverity.HIGH.slice(0, 5).forEach(issue => {\n    message += `\u2022 ${issue.resourceName}: ${issue.type}\\n`;\n    if (issue.linkUrl) message += `  Link: ${issue.linkUrl}\\n`;\n    if (issue.sharedWith) message += `  Shared with: ${issue.sharedWith}\\n`;\n  });\n  if (bySeverity.HIGH.length > 5) {\n    message += `... and ${bySeverity.HIGH.length - 5} more\\n`;\n  }\n}\n\nmessage += `\\nTimestamp: ${new Date().toISOString()}`;\n\nreturn [{\n  json: {\n    channel: '#security-alerts',\n    text: message,\n    hasIssues: true,\n    blocks: [\n      {\n        type: 'header',\n        text: {\n          type: 'plain_text',\n          text: '\ud83d\udd13 Oversharing Alert',\n          emoji: true\n        }\n      },\n      {\n        type: 'section',\n        text: {\n          type: 'mrkdwn',\n          text: message\n        }\n      }\n    ]\n  }\n}];"
+      },
+      "name": "Format Alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2050,
+        275
+      ],
+      "id": "f6b41d94-ef3d-4e10-9c0f-14b96047d725"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Config": {
+      "main": [
+        [
+          {
+            "node": "Get Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Token": {
+      "main": [
+        [
+          {
+            "node": "Get Sites",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Sites": {
+      "main": [
+        [
+          {
+            "node": "Loop Sites",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Sites": {
+      "main": [
+        [
+          {
+            "node": "Get Site Permissions",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Site Drives",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Get Site Permissions": {
+      "main": [
+        [
+          {
+            "node": "Detect Oversharing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Site Drives": {
+      "main": [
+        [
+          {
+            "node": "Detect Oversharing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Oversharing": {
+      "main": [
+        [
+          {
+            "node": "Loop Sites",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "IF Oversharing Detected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Oversharing Detected": {
+      "main": [
+        [
+          {
+            "node": "Format Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "be8605bf-ea0b-452e-8f23-c51d82750ae2",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-12-26T21:38:49.121Z",
+      "createdAt": "2025-12-26T21:38:49.121Z",
+      "role": "workflow:owner",
+      "workflowId": "vhCGdhmE66UQxkF5",
+      "projectId": "5zyza4bMeIQj3EHD"
+    }
+  ],
+  "activeVersion": null,
+  "tags": []
+}

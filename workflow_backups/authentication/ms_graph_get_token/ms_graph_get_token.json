@@ -1,0 +1,123 @@
+{
+  "updatedAt": "2025-12-27T17:17:20.065Z",
+  "createdAt": "2025-12-26T21:38:48.977Z",
+  "id": "7ZbBzotxWJJfgrav",
+  "name": "MS Graph - Get Token",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        160,
+        304
+      ],
+      "id": "647a9c63-e5fe-4782-a2a6-85d08cca08d8"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "scope",
+              "value": "https://graph.microsoft.com/.default"
+            },
+            {
+              "name": "client_id",
+              "value": "dcb92a18-ed67-4bc2-8ca4-e0dbd8152dfe"
+            },
+            {
+              "name": "client_secret",
+              "value": "e8cfc8bb-e64d-4559-87d5-d4f22ffc2b77"
+            },
+            {
+              "name": "grant_type",
+              "value": "client_credentials"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "name": "Get Token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        464,
+        304
+      ],
+      "id": "5b80cb31-892c-4280-acd4-029c5ce6f0b0"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format token response for use in other workflows\nconst tokenResponse = $input.first().json;\n\n// Calculate expiration timestamp\nconst expiresIn = tokenResponse.expires_in || 3600; // Default 1 hour\nconst expiresAt = new Date(Date.now() + (expiresIn * 1000)).toISOString();\n\nreturn [{\n  json: {\n    accessToken: tokenResponse.access_token,\n    tokenType: tokenResponse.token_type || 'Bearer',\n    expiresIn: expiresIn,\n    expiresAt: expiresAt,\n    scope: tokenResponse.scope || 'https://graph.microsoft.com/.default'\n  }\n}];"
+      },
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        656,
+        304
+      ],
+      "id": "bf965b60-adf1-40f3-8571-868b10ecf944"
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Token": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "2725f9e9-ad23-499d-a205-2faf7d0f4280",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-12-26T21:38:48.977Z",
+      "createdAt": "2025-12-26T21:38:48.977Z",
+      "role": "workflow:owner",
+      "workflowId": "7ZbBzotxWJJfgrav",
+      "projectId": "5zyza4bMeIQj3EHD"
+    }
+  ],
+  "activeVersion": null,
+  "tags": []
+}

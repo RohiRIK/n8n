@@ -1,0 +1,371 @@
+{
+  "updatedAt": "2025-12-26T21:41:09.256Z",
+  "createdAt": "2025-12-26T21:38:49.045Z",
+  "id": "CgipiWkSZmjKh8Li",
+  "name": "Stale Guest Cleanup",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 1"
+            }
+          ]
+        }
+      },
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        250,
+        300
+      ],
+      "id": "0a8e8383-f205-4d1e-9bb9-73f2e4504c9c"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Configure stale guest cleanup\nreturn [{\n  json: {\n    tenantId: $env.MS_TENANT_ID,\n    clientId: $env.MS_CLIENT_ID,\n    inactiveDaysThreshold: 90,\n    autoDeleteEnabled: $env.AUTO_DELETE_ENABLED === 'true'\n  }\n}];"
+      },
+      "name": "Set Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        450,
+        300
+      ],
+      "id": "599e7970-f059-4439-bc7b-d39bfa2266d0"
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "MS Graph - Get Token",
+          "mode": "name"
+        },
+        "options": {
+          "inputData": {
+            "mode": "json",
+            "jsonData": "={\"tenantId\": \"{{$json.tenantId}}\", \"clientId\": \"{{$json.clientId}}\"}"
+          }
+        }
+      },
+      "name": "Get Token",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        650,
+        300
+      ],
+      "id": "846414c6-e33c-4477-a390-4edb882f95a6"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.microsoft.com/v1.0/users?$filter=userType eq 'Guest'&$select=id,displayName,userPrincipalName,signInActivity,createdDateTime&$count=true",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$node['Get Token'].json.accessToken}}"
+            },
+            {
+              "name": "ConsistencyLevel",
+              "value": "eventual"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "name": "Get Guest Users",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        850,
+        300
+      ],
+      "id": "b7184979-bc8f-442b-a4fd-885a25860a76"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Identify stale guest users\nconst users = $input.first().json.value || [];\nconst threshold = $node['Set Config'].json.inactiveDaysThreshold;\nconst staleGuests = [];\n\n// Calculate threshold date\nconst thresholdDate = new Date();\nthresholdDate.setDate(thresholdDate.getDate() - threshold);\n\nfor (const user of users) {\n  // Get last sign-in date (use createdDateTime if never signed in)\n  const lastSignIn = user.signInActivity?.lastSignInDateTime \n    ? new Date(user.signInActivity.lastSignInDateTime)\n    : new Date(user.createdDateTime);\n  \n  // Check if user is stale\n  if (lastSignIn < thresholdDate) {\n    const daysSinceSignIn = Math.floor((Date.now() - lastSignIn.getTime()) / (1000 * 60 * 60 * 24));\n    \n    staleGuests.push({\n      userId: user.id,\n      displayName: user.displayName,\n      userPrincipalName: user.userPrincipalName,\n      lastSignInDate: lastSignIn.toISOString(),\n      daysSinceSignIn: daysSinceSignIn,\n      createdDate: user.createdDateTime,\n      timestamp: new Date().toISOString()\n    });\n  }\n}\n\nreturn [{\n  json: {\n    staleGuests: staleGuests,\n    totalStaleGuests: staleGuests.length,\n    totalGuestsChecked: users.length,\n    thresholdDays: threshold,\n    autoDeleteEnabled: $node['Set Config'].json.autoDeleteEnabled\n  }\n}];"
+      },
+      "name": "Identify Stale",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1050,
+        300
+      ],
+      "id": "0d08dd38-7cc2-46f4-9833-775ca588e527"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition1",
+              "leftValue": "={{$json.autoDeleteEnabled}}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            },
+            {
+              "id": "condition2",
+              "leftValue": "={{$json.totalStaleGuests}}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "IF Auto-Delete Enabled",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1250,
+        300
+      ],
+      "id": "dd8e0757-7893-4e97-91e8-c33a2ff85e3c"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "staleGuests",
+        "options": {}
+      },
+      "name": "Split Out Guests",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1450,
+        200
+      ],
+      "id": "6b0c9c27-db28-4d57-9bf9-1f4dae7020ef"
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "=https://graph.microsoft.com/v1.0/users/{{$json.userId}}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$node['Get Token'].json.accessToken}}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Delete User",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1650,
+        200
+      ],
+      "id": "a051562f-0705-4593-a437-7080d7ec347f"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Prepare notification data\nconst data = $node['Identify Stale'].json;\nconst staleGuests = data.staleGuests || [];\nconst autoDeleteEnabled = data.autoDeleteEnabled;\n\nlet message = `\ud83d\udcca *Weekly Stale Guest Cleanup Report*\\n\\n`;\nmessage += `Total Guests Checked: ${data.totalGuestsChecked}\\n`;\nmessage += `Stale Guests Found: ${data.totalStaleGuests}\\n`;\nmessage += `Threshold: ${data.thresholdDays} days\\n`;\nmessage += `Auto-Delete: ${autoDeleteEnabled ? '\u2705 ENABLED' : '\u274c DISABLED'}\\n\\n`;\n\nif (data.totalStaleGuests === 0) {\n  message += `\u2705 No stale guest accounts found`;\n} else {\n  if (autoDeleteEnabled) {\n    message += `\u26a0\ufe0f *Deleted Accounts (${staleGuests.length})*\\n`;\n  } else {\n    message += `\ud83d\udccb *Stale Accounts Identified (Manual Review Required)*\\n`;\n  }\n  \n  staleGuests.slice(0, 10).forEach(guest => {\n    message += `\u2022 ${guest.displayName} (${guest.userPrincipalName})\\n`;\n    message += `  Last Sign-In: ${guest.daysSinceSignIn} days ago\\n`;\n  });\n  \n  if (staleGuests.length > 10) {\n    message += `... and ${staleGuests.length - 10} more\\n`;\n  }\n  \n  if (!autoDeleteEnabled) {\n    message += `\\n\u26a0\ufe0f To enable automatic deletion, set environment variable:\\n`;\n    message += `AUTO_DELETE_ENABLED=true\\n`;\n  }\n}\n\nmessage += `\\nTimestamp: ${new Date().toISOString()}`;\n\nreturn [{\n  json: {\n    channel: '#security-alerts',\n    title: '\ud83d\udcca Stale Guest Report',\n    severity: autoDeleteEnabled && data.totalStaleGuests > 0 ? 'high' : 'medium',\n    message: message,\n    data: data\n  }\n}];"
+      },
+      "name": "Prepare Notification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1450,
+        400
+      ],
+      "id": "20ff8d3a-a07a-4371-98d5-a3205bbab5bc"
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "Send Notification",
+          "mode": "name"
+        },
+        "options": {
+          "inputData": {
+            "mode": "json",
+            "jsonData": "={{$json}}"
+          }
+        }
+      },
+      "name": "Send Notification",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        1650,
+        400
+      ],
+      "id": "9e859956-ecb4-4f4d-8df7-9cadecca9f42"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Config": {
+      "main": [
+        [
+          {
+            "node": "Get Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Token": {
+      "main": [
+        [
+          {
+            "node": "Get Guest Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Guest Users": {
+      "main": [
+        [
+          {
+            "node": "Identify Stale",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Identify Stale": {
+      "main": [
+        [
+          {
+            "node": "IF Auto-Delete Enabled",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Auto-Delete Enabled": {
+      "main": [
+        [
+          {
+            "node": "Split Out Guests",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out Guests": {
+      "main": [
+        [
+          {
+            "node": "Delete User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete User": {
+      "main": [
+        [
+          {
+            "node": "Prepare Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Notification": {
+      "main": [
+        [
+          {
+            "node": "Send Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "e05cd618-da2d-4040-9e50-08bb317e83af",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-12-26T21:38:49.045Z",
+      "createdAt": "2025-12-26T21:38:49.045Z",
+      "role": "workflow:owner",
+      "workflowId": "CgipiWkSZmjKh8Li",
+      "projectId": "5zyza4bMeIQj3EHD"
+    }
+  ],
+  "activeVersion": null,
+  "tags": []
+}

@@ -1,0 +1,524 @@
+{
+  "updatedAt": "2025-12-26T21:41:34.648Z",
+  "createdAt": "2025-12-26T21:38:49.152Z",
+  "id": "xXeUixNMepmsHYZc",
+  "name": "AI Anomaly Detection",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        250,
+        300
+      ],
+      "id": "916c7135-8d4b-4e34-8e54-968b38a82a81"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return [{\n  json: {\n    tenantId: $env.MS_TENANT_ID,\n    clientId: $env.MS_CLIENT_ID,\n    baselineDays: 30,\n    anomalyThreshold: 2 // Z-score threshold\n  }\n}];"
+      },
+      "name": "Set Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        450,
+        300
+      ],
+      "id": "791cd3c4-310e-47cf-8062-5175241ffd8c"
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "MS Graph - Get Token",
+          "mode": "name"
+        },
+        "options": {
+          "inputData": {
+            "mode": "json",
+            "jsonData": "={\"tenantId\": \"{{$json.tenantId}}\", \"clientId\": \"{{$json.clientId}}\"}"
+          }
+        }
+      },
+      "name": "Get Token",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        650,
+        300
+      ],
+      "id": "ad799e46-47d3-4854-b5af-73aee5cbccf9"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.microsoft.com/v1.0/auditLogs/signIns?$filter=createdDateTime gt {{$now.minus(1, 'hours').toISO()}}&$select=userPrincipalName,ipAddress,location,createdDateTime,deviceDetail",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$node['Get Token'].json.accessToken}}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json",
+              "responsePropertyName": "signIns"
+            }
+          }
+        }
+      },
+      "name": "Get Recent Sign-Ins",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        850,
+        250
+      ],
+      "id": "fc8da80f-39bd-49a4-b621-b54a0743e80a"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.microsoft.com/v1.0/auditLogs/directoryAudits?$filter=activityDisplayName eq 'Download file' and activityDateTime gt {{$now.minus(1, 'hours').toISO()}}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$node['Get Token'].json.accessToken}}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json",
+              "responsePropertyName": "fileAccess"
+            }
+          }
+        }
+      },
+      "name": "Get File Access",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        850,
+        350
+      ],
+      "id": "08378272-65fb-474e-a09c-6632e854d511"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.microsoft.com/v1.0/auditLogs/signIns?$filter=createdDateTime gt {{$now.minus(30, 'days').toISO()}}&$select=userPrincipalName,ipAddress,location,createdDateTime",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$node['Get Token'].json.accessToken}}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json",
+              "responsePropertyName": "baselineSignIns"
+            }
+          }
+        }
+      },
+      "name": "Get Baseline Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        850,
+        450
+      ],
+      "id": "302685ab-ffe6-439b-a2c8-5b99a1160704"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Calculate baseline statistics per user\nconst baselineData = $input.item(2).json.baselineSignIns?.value || [];\nconst userBaselines = {};\n\n// Group by user\nfor (const signIn of baselineData) {\n  const user = signIn.userPrincipalName;\n  if (!userBaselines[user]) {\n    userBaselines[user] = {\n      signInCounts: [],\n      ips: new Set(),\n      locations: new Set(),\n      hours: []\n    };\n  }\n  \n  // Track IPs and locations\n  if (signIn.ipAddress) userBaselines[user].ips.add(signIn.ipAddress);\n  if (signIn.location?.city) userBaselines[user].locations.add(signIn.location.city);\n  \n  // Track sign-in hours\n  const hour = new Date(signIn.createdDateTime).getHours();\n  userBaselines[user].hours.push(hour);\n}\n\n// Calculate statistics\nfor (const user in userBaselines) {\n  const data = userBaselines[user];\n  \n  // Daily average sign-ins\n  const avgSignInsPerDay = data.hours.length / 30;\n  \n  // Standard deviation\n  const mean = avgSignInsPerDay;\n  const variance = data.hours.map(h => Math.pow(h - mean, 2)).reduce((a, b) => a + b, 0) / data.hours.length;\n  const stdDev = Math.sqrt(variance);\n  \n  userBaselines[user] = {\n    avgSignInsPerDay: avgSignInsPerDay,\n    stdDev: stdDev || 1, // Avoid division by zero\n    commonIPs: Array.from(data.ips),\n    commonLocations: Array.from(data.locations),\n    totalSignIns: data.hours.length\n  };\n}\n\nreturn [{\n  json: {\n    userBaselines: userBaselines,\n    baselineCalculated: true\n  }\n}];"
+      },
+      "name": "Calculate Baseline",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1050,
+        350
+      ],
+      "id": "5d93ed85-2955-4460-a1e7-d54a4f739d1f"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Calculate anomaly features and detect anomalies\nconst recentSignIns = $input.item(0).json.signIns?.value || [];\nconst fileAccess = $input.item(1).json.fileAccess?.value || [];\nconst baselines = $node['Calculate Baseline'].json.userBaselines;\nconst threshold = $node['Set Config'].json.anomalyThreshold;\n\nconst anomalies = [];\n\n// Group recent activity by user\nconst userActivity = {};\nfor (const signIn of recentSignIns) {\n  const user = signIn.userPrincipalName;\n  if (!userActivity[user]) {\n    userActivity[user] = {\n      signInCount: 0,\n      uniqueIPs: new Set(),\n      uniqueLocations: new Set(),\n      hours: []\n    };\n  }\n  userActivity[user].signInCount++;\n  if (signIn.ipAddress) userActivity[user].uniqueIPs.add(signIn.ipAddress);\n  if (signIn.location?.city) userActivity[user].uniqueLocations.add(signIn.location.city);\n  userActivity[user].hours.push(new Date(signIn.createdDateTime).getHours());\n}\n\n// File access by user\nconst fileAccessByUser = {};\nfor (const access of fileAccess) {\n  const user = access.initiatedBy?.user?.userPrincipalName;\n  if (user) {\n    fileAccessByUser[user] = (fileAccessByUser[user] || 0) + 1;\n  }\n}\n\n// Detect anomalies\nfor (const user in userActivity) {\n  const activity = userActivity[user];\n  const baseline = baselines[user];\n  \n  if (!baseline) continue; // No baseline for new users\n  \n  // Calculate z-scores\n  const signInZScore = Math.abs((activity.signInCount - baseline.avgSignInsPerDay) / baseline.stdDev);\n  const newIPCount = Array.from(activity.uniqueIPs).filter(ip => !baseline.commonIPs.includes(ip)).length;\n  const newLocationCount = Array.from(activity.uniqueLocations).filter(loc => !baseline.commonLocations.includes(loc)).length;\n  \n  // Unusual hours (outside 6 AM - 10 PM)\n  const unusualHours = activity.hours.filter(h => h < 6 || h > 22).length;\n  const unusualHoursRatio = unusualHours / activity.hours.length;\n  \n  // File access deviation\n  const fileCount = fileAccessByUser[user] || 0;\n  const fileAccessDeviation = fileCount > 50 ? fileCount / 10 : 0; // Simple heuristic\n  \n  // Combined anomaly score\n  const anomalyScore = Math.max(signInZScore, newIPCount, newLocationCount * 2, unusualHoursRatio * 10, fileAccessDeviation);\n  \n  if (anomalyScore > threshold) {\n    anomalies.push({\n      userPrincipalName: user,\n      anomalyScore: Math.round(anomalyScore * 100) / 100,\n      signInZScore: Math.round(signInZScore * 100) / 100,\n      newIPCount: newIPCount,\n      newLocationCount: newLocationCount,\n      unusualHoursRatio: Math.round(unusualHoursRatio * 100),\n      fileAccessCount: fileCount,\n      recentSignIns: activity.signInCount,\n      baselineSignIns: Math.round(baseline.avgSignInsPerDay),\n      timestamp: new Date().toISOString()\n    });\n  }\n}\n\nreturn anomalies.map(a => ({json: a}));"
+      },
+      "name": "Detect Anomalies",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1250,
+        350
+      ],
+      "id": "08b154e0-7764-4274-9169-fefdb310d673"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Prepare LLM explanation prompt\nconst anomaly = $input.first().json;\n\nconst prompt = `Analyze this user behavior anomaly and provide threat assessment.\n\n**User Activity Anomaly:**\n- User: ${anomaly.userPrincipalName}\n- Anomaly Score: ${anomaly.anomalyScore} (threshold: 2.0)\n- Sign-In Deviation: ${anomaly.signInZScore}x standard deviation\n- New IPs: ${anomaly.newIPCount}\n- New Locations: ${anomaly.newLocationCount}\n- Unusual Hours: ${anomaly.unusualHoursRatio}%\n- File Downloads: ${anomaly.fileAccessCount}\n- Recent Sign-Ins: ${anomaly.recentSignIns} (baseline: ${anomaly.baselineSignIns})\n\n**Analysis Required:**\n1. Assess likelihood of account compromise\n2. Determine threat level\n3. Recommend graduated response (MFA, session revoke, account disable)\n4. Provide clear explanation for security team\n\n**Required Response Format (JSON only):**\n{\n  \"threatLevel\": \"low/medium/high/critical\",\n  \"compromiseLikelihood\": 0-100,\n  \"explanation\": \"clear explanation of anomaly\",\n  \"possibleCauses\": [\"list of possible explanations\"],\n  \"actions\": [\n    {\"action\": \"specific action\", \"urgency\": \"immediate/high/medium/low\"}\n  ],\n  \"requiresMFA\": true/false,\n  \"requiresSessionRevoke\": true/false,\n  \"requiresAccountDisable\": true/false\n}\n\nRespond with ONLY the JSON object.`;\n\nreturn [{\n  json: {\n    prompt: prompt,\n    anomalyData: anomaly\n  }\n}];"
+      },
+      "name": "Prepare LLM Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1450,
+        350
+      ],
+      "id": "765836e8-3766-4134-9ef2-b77ce7084948"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "gpt-4"
+            },
+            {
+              "name": "messages",
+              "value": "=[{\"role\": \"system\", \"content\": \"You are a security analyst specializing in user behavior analytics.\"}, {\"role\": \"user\", \"content\": \"{{$json.prompt}}\"}]"
+            },
+            {
+              "name": "temperature",
+              "value": "0.2"
+            },
+            {
+              "name": "response_format",
+              "value": "={\"type\": \"json_object\"}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "name": "LLM Explanation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1650,
+        350
+      ],
+      "id": "69c7b6e1-5d57-484b-9080-2ec762de3fc0"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Parse LLM response\nconst response = $input.first().json;\nconst anomalyData = $node['Prepare LLM Prompt'].json.anomalyData;\n\nfunction extractJSON(llmResponse) {\n  let text;\n  if (llmResponse.choices?.[0]?.message?.content) text = llmResponse.choices[0].message.content;\n  else if (llmResponse.content?.[0]?.text) text = llmResponse.content[0].text;\n  else if (llmResponse.candidates?.[0]?.content?.parts?.[0]?.text) text = llmResponse.candidates[0].content.parts[0].text;\n  else if (llmResponse.response) text = llmResponse.response;\n  else text = llmResponse.text || JSON.stringify(llmResponse);\n  \n  text = text.replace(/```json\\n?|```\\n?/g, '').trim();\n  const jsonMatch = text.match(/\\{[\\s\\S]*\\}/);\n  return JSON.parse(jsonMatch ? jsonMatch[0] : text);\n}\n\ntry {\n  const analysis = extractJSON(response);\n  return [{\n    json: {\n      user: anomalyData.userPrincipalName,\n      anomaly: anomalyData,\n      aiAnalysis: analysis,\n      threatLevel: analysis.threatLevel,\n      requiresMFA: analysis.requiresMFA,\n      requiresSessionRevoke: analysis.requiresSessionRevoke,\n      isHighThreat: ['high', 'critical'].includes(analysis.threatLevel),\n      timestamp: new Date().toISOString()\n    }\n  }];\n} catch (error) {\n  return [{\n    json: {\n      user: anomalyData.userPrincipalName,\n      anomaly: anomalyData,\n      aiAnalysis: { error: error.message },\n      threatLevel: 'medium',\n      requiresMFA: true,\n      requiresSessionRevoke: false,\n      isHighThreat: false,\n      timestamp: new Date().toISOString()\n    }\n  }];\n}"
+      },
+      "name": "Parse AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1850,
+        350
+      ],
+      "id": "9a355d7b-b23e-4454-bc59-364a4f838853"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition1",
+              "leftValue": "={{$json.isHighThreat}}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "IF High Threat",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2050,
+        350
+      ],
+      "id": "d23d8585-e394-4652-8b6f-7c110dba85b0"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.microsoft.com/v1.0/users/{{$json.user}}/manager",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$node['Get Token'].json.accessToken}}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json",
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Get User Manager",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2250,
+        250
+      ],
+      "id": "bbc7df72-41c1-457e-a74d-e22f59b32a41"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Format anomaly detection alert\nconst data = $input.first().json;\nconst analysis = data.aiAnalysis;\nconst anomaly = data.anomaly;\n\nlet message = `\ud83d\udd0d *Behavioral Anomaly Detected*\\n\\n`;\nmessage += `*User:* ${data.user}\\n`;\nmessage += `*Threat Level:* ${data.threatLevel.toUpperCase()}\\n`;\nmessage += `*Anomaly Score:* ${anomaly.anomalyScore}\\n`;\nmessage += `*Compromise Likelihood:* ${analysis.compromiseLikelihood || 'N/A'}%\\n\\n`;\n\nmessage += `*Anomaly Details:*\\n`;\nmessage += `\u2022 Sign-In Deviation: ${anomaly.signInZScore}x normal\\n`;\nmessage += `\u2022 New IPs: ${anomaly.newIPCount}\\n`;\nmessage += `\u2022 New Locations: ${anomaly.newLocationCount}\\n`;\nmessage += `\u2022 Unusual Hours: ${anomaly.unusualHoursRatio}%\\n`;\nmessage += `\u2022 File Downloads: ${anomaly.fileAccessCount}\\n\\n`;\n\nmessage += `*AI Analysis:*\\n${analysis.explanation}\\n\\n`;\n\nif (analysis.possibleCauses) {\n  message += `*Possible Causes:*\\n`;\n  analysis.possibleCauses.forEach(cause => {\n    message += `\u2022 ${cause}\\n`;\n  });\n  message += `\\n`;\n}\n\nif (data.isHighThreat) {\n  message += `\u26a0\ufe0f *Automated Response:*\\n`;\n  if (data.requiresMFA) message += `\u2022 \u2705 MFA challenge required\\n`;\n  if (data.requiresSessionRevoke) message += `\u2022 \u2705 Sessions revoked\\n`;\n}\n\nmessage += `\\nTimestamp: ${data.timestamp}`;\n\nreturn [{\n  json: {\n    channel: '#security-alerts',\n    text: message,\n    blocks: [\n      {\n        type: 'header',\n        text: {\n          type: 'plain_text',\n          text: '\ud83d\udd0d Anomaly Detected',\n          emoji: true\n        }\n      },\n      {\n        type: 'section',\n        text: {\n          type: 'mrkdwn',\n          text: message\n        }\n      }\n    ]\n  }\n}];"
+      },
+      "name": "Format Alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2250,
+        450
+      ],
+      "id": "9f1c3cbf-dd79-42b4-95a1-954c7031ddaa"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Config": {
+      "main": [
+        [
+          {
+            "node": "Get Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Token": {
+      "main": [
+        [
+          {
+            "node": "Get Recent Sign-Ins",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get File Access",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Baseline Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Recent Sign-Ins": {
+      "main": [
+        [
+          {
+            "node": "Calculate Baseline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get File Access": {
+      "main": [
+        [
+          {
+            "node": "Calculate Baseline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Baseline Data": {
+      "main": [
+        [
+          {
+            "node": "Calculate Baseline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Baseline": {
+      "main": [
+        [
+          {
+            "node": "Detect Anomalies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Anomalies": {
+      "main": [
+        [
+          {
+            "node": "Prepare LLM Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare LLM Prompt": {
+      "main": [
+        [
+          {
+            "node": "LLM Explanation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM Explanation": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Response": {
+      "main": [
+        [
+          {
+            "node": "IF High Threat",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Format Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF High Threat": {
+      "main": [
+        [
+          {
+            "node": "Get User Manager",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get User Manager": {
+      "main": [
+        [
+          {
+            "node": "Format Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "97ebe8e8-3777-443a-80d7-a141833a2a2a",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-12-26T21:38:49.152Z",
+      "createdAt": "2025-12-26T21:38:49.152Z",
+      "role": "workflow:owner",
+      "workflowId": "xXeUixNMepmsHYZc",
+      "projectId": "5zyza4bMeIQj3EHD"
+    }
+  ],
+  "activeVersion": null,
+  "tags": []
+}

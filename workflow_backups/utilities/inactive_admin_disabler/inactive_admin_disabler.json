@@ -1,0 +1,398 @@
+{
+  "updatedAt": "2025-12-26T21:41:02.910Z",
+  "createdAt": "2025-12-26T21:38:49.020Z",
+  "id": "RAW59C46KsKJZjDc",
+  "name": "Inactive Admin Disabler",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 11 * * *"
+            }
+          ]
+        }
+      },
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        250,
+        300
+      ],
+      "id": "1cb1b6db-1b50-43c4-837d-ebfecc59dbd5"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Configure inactive admin detection\nconst privilegedRoles = [\n  'Global Administrator',\n  'Security Administrator',\n  'Privileged Role Administrator',\n  'User Administrator',\n  'Exchange Administrator',\n  'SharePoint Administrator',\n  'Teams Administrator',\n  'Application Administrator',\n  'Cloud Application Administrator'\n];\n\nreturn [{\n  json: {\n    tenantId: $env.MS_TENANT_ID,\n    clientId: $env.MS_CLIENT_ID,\n    inactiveDaysThreshold: 30,\n    privilegedRoles: privilegedRoles,\n    autoDisableEnabled: $env.AUTO_DISABLE_ENABLED === 'true'\n  }\n}];"
+      },
+      "name": "Set Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        450,
+        300
+      ],
+      "id": "62843033-e8c1-49ae-b5ef-223a7c0c7477"
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "MS Graph - Get Token",
+          "mode": "name"
+        },
+        "options": {
+          "inputData": {
+            "mode": "json",
+            "jsonData": "={\"tenantId\": \"{{$json.tenantId}}\", \"clientId\": \"{{$json.clientId}}\"}"
+          }
+        }
+      },
+      "name": "Get Token",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        650,
+        300
+      ],
+      "id": "ac8715b8-450d-400b-9bb1-d86348f64f6e"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://graph.microsoft.com/v1.0/directoryRoles",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$node['Get Token'].json.accessToken}}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "name": "Get Directory Roles",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        850,
+        300
+      ],
+      "id": "32266c0c-ae79-4505-859a-dd5bde9fa056"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Filter to privileged roles only\nconst allRoles = $input.first().json.value || [];\nconst privilegedRoleNames = $node['Set Config'].json.privilegedRoles;\n\nconst privilegedRoles = allRoles.filter(role => \n  privilegedRoleNames.includes(role.displayName)\n);\n\nreturn privilegedRoles.map(role => ({\n  json: {\n    roleId: role.id,\n    roleName: role.displayName,\n    roleDescription: role.description\n  }\n}));"
+      },
+      "name": "Filter Privileged Roles",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1050,
+        300
+      ],
+      "id": "11e29dd2-1d04-4989-ad3a-5145d46f244b"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.microsoft.com/v1.0/directoryRoles/{{$json.roleId}}/members?$select=id,displayName,userPrincipalName,signInActivity",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$node['Get Token'].json.accessToken}}"
+            },
+            {
+              "name": "ConsistencyLevel",
+              "value": "eventual"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "name": "Get Role Members",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1250,
+        300
+      ],
+      "id": "fb062ffa-79bb-46e5-93a3-48f15cf8cbc6"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Check admin activity\nconst members = $input.first().json.value || [];\nconst threshold = $node['Set Config'].json.inactiveDaysThreshold;\nconst roleData = $node['Filter Privileged Roles'].json;\nconst inactiveAdmins = [];\n\n// Calculate threshold date\nconst thresholdDate = new Date();\nthresholdDate.setDate(thresholdDate.getDate() - threshold);\n\nfunction daysAgo(dateString) {\n  if (!dateString) return 9999;\n  const then = new Date(dateString);\n  const now = new Date();\n  return Math.floor((now - then) / (1000 * 60 * 60 * 24));\n}\n\nfor (const member of members) {\n  const lastSignIn = member.signInActivity?.lastSignInDateTime;\n  const daysSinceSignIn = daysAgo(lastSignIn);\n  \n  // Check if admin is inactive\n  if (daysSinceSignIn > threshold) {\n    inactiveAdmins.push({\n      userId: member.id,\n      displayName: member.displayName,\n      userPrincipalName: member.userPrincipalName,\n      roleId: roleData.roleId,\n      roleName: roleData.roleName,\n      lastSignInDate: lastSignIn || 'Never',\n      daysSinceSignIn: daysSinceSignIn,\n      severity: 'CRITICAL',\n      timestamp: new Date().toISOString()\n    });\n  }\n}\n\nreturn inactiveAdmins.map(admin => ({json: admin}));"
+      },
+      "name": "Check Activity",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1450,
+        300
+      ],
+      "id": "36af2115-72c3-4f51-a5d8-94d99bc18086"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition1",
+              "leftValue": "={{$node['Set Config'].json.autoDisableEnabled}}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            },
+            {
+              "id": "condition2",
+              "leftValue": "={{$json.userId}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "IF Auto-Disable Enabled",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1650,
+        300
+      ],
+      "id": "e3b3fe78-88f9-48a6-8929-778031181682"
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "=https://graph.microsoft.com/v1.0/directoryRoles/{{$json.roleId}}/members/{{$json.userId}}/$ref",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$node['Get Token'].json.accessToken}}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Remove Admin Role",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1850,
+        200
+      ],
+      "id": "3e800d37-72da-40f1-b0a4-7cee582daa96"
+    },
+    {
+      "parameters": {},
+      "name": "Merge Results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        2050,
+        300
+      ],
+      "id": "cfb26d5a-6416-46c7-a5d8-b5012d1eb1e5"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Aggregate all inactive admin detections\nconst allDetections = $input.all().map(item => item.json).filter(item => item.userId);\nconst autoDisableEnabled = $node['Set Config'].json.autoDisableEnabled;\n\nlet message = `\ud83d\udea8 *Inactive Admin Account Report*\\n\\n`;\n\nif (allDetections.length === 0) {\n  message += `\u2705 No inactive admin accounts detected`;\n} else {\n  message += `Total Inactive Admins: ${allDetections.length}\\n`;\n  message += `Auto-Disable: ${autoDisableEnabled ? '\u2705 ENABLED' : '\u274c DISABLED'}\\n`;\n  message += `Threshold: ${$node['Set Config'].json.inactiveDaysThreshold} days\\n\\n`;\n  \n  // Group by role\n  const byRole = {};\n  for (const detection of allDetections) {\n    if (!byRole[detection.roleName]) {\n      byRole[detection.roleName] = [];\n    }\n    byRole[detection.roleName].push(detection);\n  }\n  \n  message += `*Inactive Admins by Role*\\n`;\n  for (const [roleName, admins] of Object.entries(byRole)) {\n    message += `\\n*${roleName}* (${admins.length})\\n`;\n    admins.forEach(admin => {\n      message += `\u2022 ${admin.displayName} - ${admin.daysSinceSignIn} days inactive\\n`;\n      message += `  Email: ${admin.userPrincipalName}\\n`;\n      if (autoDisableEnabled) {\n        message += `  Status: \u2705 Role removed\\n`;\n      }\n    });\n  }\n  \n  if (!autoDisableEnabled) {\n    message += `\\n\u26a0\ufe0f *Manual Action Required*\\n`;\n    message += `To enable automatic role removal, set environment variable:\\n`;\n    message += `AUTO_DISABLE_ENABLED=true\\n`;\n  }\n}\n\nmessage += `\\nTimestamp: ${new Date().toISOString()}`;\n\nreturn [{\n  json: {\n    channel: '#security-alerts',\n    text: message,\n    blocks: [\n      {\n        type: 'header',\n        text: {\n          type: 'plain_text',\n          text: '\ud83d\udea8 Inactive Admin Alert',\n          emoji: true\n        }\n      },\n      {\n        type: 'section',\n        text: {\n          type: 'mrkdwn',\n          text: message\n        }\n      }\n    ]\n  }\n}];"
+      },
+      "name": "Format Alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2250,
+        300
+      ],
+      "id": "a0ab7955-0b6a-4b53-b70f-0842319e5baf"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Config": {
+      "main": [
+        [
+          {
+            "node": "Get Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Token": {
+      "main": [
+        [
+          {
+            "node": "Get Directory Roles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Directory Roles": {
+      "main": [
+        [
+          {
+            "node": "Filter Privileged Roles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Privileged Roles": {
+      "main": [
+        [
+          {
+            "node": "Get Role Members",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Role Members": {
+      "main": [
+        [
+          {
+            "node": "Check Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Activity": {
+      "main": [
+        [
+          {
+            "node": "IF Auto-Disable Enabled",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "IF Auto-Disable Enabled": {
+      "main": [
+        [
+          {
+            "node": "Remove Admin Role",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Admin Role": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Results": {
+      "main": [
+        [
+          {
+            "node": "Format Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "ba5e58eb-92c4-4fb9-9ce9-c78066cc7917",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-12-26T21:38:49.020Z",
+      "createdAt": "2025-12-26T21:38:49.020Z",
+      "role": "workflow:owner",
+      "workflowId": "RAW59C46KsKJZjDc",
+      "projectId": "5zyza4bMeIQj3EHD"
+    }
+  ],
+  "activeVersion": null,
+  "tags": []
+}

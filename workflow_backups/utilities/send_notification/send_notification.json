@@ -1,0 +1,168 @@
+{
+  "updatedAt": "2025-12-27T14:14:15.216Z",
+  "createdAt": "2025-12-26T21:38:49.002Z",
+  "id": "VMLzlczwLHsz5FrE",
+  "name": "Send Notification",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        256,
+        272
+      ],
+      "id": "04e774bf-7944-41e7-b1a5-8d3cb9add71e"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validate and extract notification data\nconst input = $input.first().json;\n\nreturn [{\n  json: {\n    channel: input.channel || '#security-alerts',\n    title: input.title || 'Security Alert',\n    severity: input.severity || 'medium',\n    message: input.message || '',\n    data: input.data || {},\n    notificationType: input.notificationType || 'slack'\n  }\n}];"
+      },
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        272
+      ],
+      "id": "0ddd75de-ba15-4e3b-af41-d0265157e19d"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Return notification status\nconst slackResponse = $input.item(0)?.json || {};\nconst teamsResponse = $input.item(1)?.json || {};\n\nreturn [{\n  json: {\n    status: 'sent',\n    slack: {\n      sent: slackResponse.ok !== false,\n      response: slackResponse\n    },\n    teams: {\n      sent: teamsResponse.error === undefined,\n      response: teamsResponse\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "name": "Return Status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        928,
+        272
+      ],
+      "id": "8dc4a4e3-8026-4615-82f5-d4bde73c9090"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        704,
+        128
+      ],
+      "id": "706b638e-7649-4ce7-998a-2e10a9049150",
+      "name": "Send a message",
+      "webhookId": "25b91e59-d944-4111-8fc0-1ffe724b89ce",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "a4CpY0J0XGrcNAtC",
+          "name": "n8n-bot-system-alrert"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "chatMessage",
+        "chatId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftTeams",
+      "typeVersion": 2,
+      "position": [
+        704,
+        416
+      ],
+      "id": "7b1aa2bd-634f-4e61-8175-5f35e55903b5",
+      "name": "Create chat message",
+      "webhookId": "15155075-28ca-4cef-b8d9-ffcc4bceea1a"
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Return Status",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create chat message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Return Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create chat message": {
+      "main": [
+        [
+          {
+            "node": "Return Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "9ef7de78-5d54-4ee5-9c76-4c74f6f289f5",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-12-26T21:38:49.002Z",
+      "createdAt": "2025-12-26T21:38:49.002Z",
+      "role": "workflow:owner",
+      "workflowId": "VMLzlczwLHsz5FrE",
+      "projectId": "5zyza4bMeIQj3EHD"
+    }
+  ],
+  "activeVersion": null,
+  "tags": []
+}

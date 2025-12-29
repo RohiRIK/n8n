@@ -1,0 +1,457 @@
+{
+  "updatedAt": "2025-12-26T21:41:38.916Z",
+  "createdAt": "2025-12-26T21:38:49.178Z",
+  "id": "c0ycWQyawCubUfns",
+  "name": "Intelligent Alert Triage",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "security/alert-intake",
+        "options": {
+          "responseMode": "responseNode"
+        }
+      },
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "security-alert-intake",
+      "id": "2d6b9120-1443-4558-b067-d54f31be7560"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Extract webhook data (CRITICAL: data is under .body)\nconst webhookData = $input.first().json.body;\n\nreturn [{\n  json: {\n    alertId: webhookData.alertId,\n    tenantId: $env.MS_TENANT_ID,\n    clientId: $env.MS_CLIENT_ID,\n    webhookPayload: webhookData\n  }\n}];"
+      },
+      "name": "Extract Webhook Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        450,
+        300
+      ],
+      "id": "4fc04a7d-e21c-4bd7-8f3f-7d9d5bb2992d"
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "MS Graph - Get Token",
+          "mode": "name"
+        },
+        "options": {
+          "inputData": {
+            "mode": "json",
+            "jsonData": "={\"tenantId\": \"{{$json.tenantId}}\", \"clientId\": \"{{$json.clientId}}\"}"
+          }
+        }
+      },
+      "name": "Get Token",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        650,
+        300
+      ],
+      "id": "6ead7cb9-e313-4751-9cc1-faed7f76bd29"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.microsoft.com/v1.0/security/alerts_v2/{{$node['Extract Webhook Data'].json.alertId}}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$node['Get Token'].json.accessToken}}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "name": "Fetch Alert Details",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        850,
+        300
+      ],
+      "id": "81fd45a7-46d5-48bb-b394-a5b4f6c6b055"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.microsoft.com/v1.0/security/alerts_v2?$filter=createdDateTime gt {{$now.minus(24, 'hours').toISO()}} and severity eq '{{$json.severity}}'&$top=50",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$node['Get Token'].json.accessToken}}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json",
+              "responsePropertyName": "similarAlerts"
+            }
+          }
+        }
+      },
+      "name": "Get Similar Alerts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1050,
+        300
+      ],
+      "id": "59561f9c-0bd8-43a6-9160-bb3386bba306"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Extract threat indicators for enrichment\nconst alert = $node['Fetch Alert Details'].json;\nconst indicators = {\n  ips: [],\n  domains: [],\n  fileHashes: []\n};\n\n// Extract from evidence\nif (alert.evidence) {\n  for (const evidence of alert.evidence) {\n    if (evidence['@odata.type'] === '#microsoft.graph.security.ipEvidence') {\n      indicators.ips.push(evidence.ipAddress);\n    }\n    if (evidence['@odata.type'] === '#microsoft.graph.security.urlEvidence') {\n      const url = new URL(evidence.url);\n      indicators.domains.push(url.hostname);\n    }\n    if (evidence['@odata.type'] === '#microsoft.graph.security.fileEvidence') {\n      if (evidence.fileDetails?.sha256) {\n        indicators.fileHashes.push(evidence.fileDetails.sha256);\n      }\n    }\n  }\n}\n\nreturn [{\n  json: {\n    alertId: alert.id,\n    indicators: indicators,\n    hasIndicators: indicators.ips.length > 0 || indicators.domains.length > 0 || indicators.fileHashes.length > 0\n  }\n}];"
+      },
+      "name": "Extract Threat Indicators",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1250,
+        300
+      ],
+      "id": "5a4c5494-9954-47fb-827a-4c74eafdd434"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Prepare LLM correlation prompt\nconst alert = $node['Fetch Alert Details'].json;\nconst similarAlerts = $input.item(0).json.similarAlerts?.value || [];\nconst indicators = $node['Extract Threat Indicators'].json.indicators;\n\nconst prompt = `You are a SOC analyst triaging a security alert. Analyze this alert and provide actionable intelligence.\n\n**Current Alert:**\n- ID: ${alert.id}\n- Title: ${alert.title}\n- Severity: ${alert.severity}\n- Category: ${alert.category}\n- Description: ${alert.description}\n- Affected User: ${alert.assignedTo || 'N/A'}\n- Detected By: ${alert.detectionSource}\n- Created: ${alert.createdDateTime}\n\n**Threat Indicators:**\n- IPs: ${indicators.ips.join(', ') || 'None'}\n- Domains: ${indicators.domains.join(', ') || 'None'}\n- File Hashes: ${indicators.fileHashes.join(', ') || 'None'}\n\n**Similar Alerts (Last 24h):**\nFound ${similarAlerts.length} similar alerts with same severity.\n${similarAlerts.slice(0, 5).map(a => `- ${a.title} (${a.category})`).join('\\n')}\n\n**Analysis Required:**\n1. Calculate risk score (0-100) based on severity, indicators, and pattern\n2. Determine if this is part of a larger attack campaign\n3. Assess whether automated remediation is safe\n4. Provide clear attack narrative\n5. Recommend specific actions with priority\n\n**Required Response Format (JSON only):**\n{\n  \"riskScore\": 0-100,\n  \"severity\": \"informational/low/medium/high/critical\",\n  \"isDuplicate\": true/false,\n  \"duplicateOf\": \"alert-id or null\",\n  \"attackStory\": \"clear narrative of what happened\",\n  \"attackType\": \"phishing/malware/data-exfil/credential-theft/etc\",\n  \"priority\": \"p1/p2/p3/p4\",\n  \"actions\": [\n    {\"action\": \"specific action\", \"urgency\": \"immediate/high/medium/low\", \"automatable\": true/false}\n  ],\n  \"reasoning\": \"detailed analysis\"\n}\n\nRespond with ONLY the JSON object.`;\n\nreturn [{\n  json: {\n    prompt: prompt,\n    alertData: alert\n  }\n}];"
+      },
+      "name": "Prepare Correlation Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1450,
+        300
+      ],
+      "id": "366cc5dd-3e95-4294-bb9d-4ae74c94bb04"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "gpt-4"
+            },
+            {
+              "name": "messages",
+              "value": "=[{\"role\": \"system\", \"content\": \"You are an expert SOC analyst.\"}, {\"role\": \"user\", \"content\": \"{{$json.prompt}}\"}]"
+            },
+            {
+              "name": "temperature",
+              "value": "0.2"
+            },
+            {
+              "name": "response_format",
+              "value": "={\"type\": \"json_object\"}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "name": "LLM Correlation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1650,
+        300
+      ],
+      "notes": "Claude Opus recommended for long context. Can use GPT-4, Gemini, or local Ollama.",
+      "id": "6e689d50-bd0d-44e9-9ba3-feb62d209ab3"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Universal LLM response parser\nconst response = $input.first().json;\nconst alertData = $node['Prepare Correlation Prompt'].json.alertData;\n\nfunction extractJSON(llmResponse) {\n  let text;\n  if (llmResponse.choices?.[0]?.message?.content) text = llmResponse.choices[0].message.content;\n  else if (llmResponse.content?.[0]?.text) text = llmResponse.content[0].text;\n  else if (llmResponse.candidates?.[0]?.content?.parts?.[0]?.text) text = llmResponse.candidates[0].content.parts[0].text;\n  else if (llmResponse.response) text = llmResponse.response;\n  else text = llmResponse.text || JSON.stringify(llmResponse);\n  \n  text = text.replace(/```json\\n?|```\\n?/g, '').trim();\n  const jsonMatch = text.match(/\\{[\\s\\S]*\\}/);\n  return JSON.parse(jsonMatch ? jsonMatch[0] : text);\n}\n\ntry {\n  const analysis = extractJSON(response);\n  return [{\n    json: {\n      alertId: alertData.id,\n      alert: alertData,\n      aiAnalysis: analysis,\n      riskScore: analysis.riskScore,\n      severity: analysis.severity,\n      priority: analysis.priority,\n      actions: analysis.actions,\n      attackStory: analysis.attackStory,\n      isCritical: analysis.severity === 'critical',\n      timestamp: new Date().toISOString()\n    }\n  }];\n} catch (error) {\n  return [{\n    json: {\n      alertId: alertData.id,\n      alert: alertData,\n      aiAnalysis: { error: error.message },\n      riskScore: 0,\n      severity: 'low',\n      priority: 'p4',\n      actions: [{action: 'Manual review required', urgency: 'medium', automatable: false}],\n      attackStory: `AI analysis failed: ${error.message}`,\n      isCritical: false,\n      timestamp: new Date().toISOString()\n    }\n  }];\n}"
+      },
+      "name": "Parse AI Analysis",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1850,
+        300
+      ],
+      "id": "63174229-dac0-41ee-a4d3-63e799a18e46"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition1",
+              "leftValue": "={{$json.isCritical}}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "IF Critical Severity",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2050,
+        300
+      ],
+      "id": "88a93b50-327d-4f01-aeeb-edfca5dca3cb"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Execute automated remediation actions\nconst data = $input.first().json;\nconst alert = data.alert;\nconst actions = data.actions || [];\n\n// Extract affected entities\nconst affectedUser = alert.evidence?.find(e => e['@odata.type'] === '#microsoft.graph.security.userEvidence');\nconst affectedDevice = alert.evidence?.find(e => e['@odata.type'] === '#microsoft.graph.security.deviceEvidence');\n\nconst remediationActions = [];\n\n// User remediation\nif (affectedUser?.userAccount?.accountName) {\n  remediationActions.push({\n    type: 'disable_user',\n    userId: affectedUser.userAccount.accountName,\n    action: 'PATCH /users/{id} {accountEnabled: false}'\n  });\n  remediationActions.push({\n    type: 'revoke_sessions',\n    userId: affectedUser.userAccount.accountName,\n    action: 'POST /users/{id}/revokeSignInSessions'\n  });\n}\n\n// Device remediation\nif (affectedDevice?.deviceId) {\n  remediationActions.push({\n    type: 'isolate_device',\n    deviceId: affectedDevice.deviceId,\n    action: 'POST /security/machines/{id}/isolate'\n  });\n}\n\nreturn [{\n  json: {\n    alertId: data.alertId,\n    remediationActions: remediationActions,\n    affectedUser: affectedUser?.userAccount?.accountName,\n    affectedDevice: affectedDevice?.deviceId,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "name": "Plan Remediation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2250,
+        200
+      ],
+      "id": "885473a2-f0df-4611-b4cb-ebd360c4304f"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Format incident notification\nconst data = $node['Parse AI Analysis'].json;\nconst analysis = data.aiAnalysis;\nconst alert = data.alert;\n\nlet message = `\ud83d\udea8 *Security Incident - ${data.severity.toUpperCase()}*\\n\\n`;\nmessage += `*Alert:* ${alert.title}\\n`;\nmessage += `*Priority:* ${data.priority.toUpperCase()}\\n`;\nmessage += `*Risk Score:* ${data.riskScore}/100\\n\\n`;\n\nmessage += `*Attack Story:*\\n${data.attackStory}\\n\\n`;\n\nif (analysis.attackType) {\n  message += `*Attack Type:* ${analysis.attackType}\\n\\n`;\n}\n\nmessage += `*Recommended Actions:*\\n`;\ndata.actions.forEach((action, i) => {\n  const icon = action.automatable ? '\ud83e\udd16' : '\ud83d\udc64';\n  message += `${i+1}. ${icon} ${action.action} (${action.urgency})\\n`;\n});\n\nif (data.isCritical) {\n  message += `\\n\u26a0\ufe0f *Automated Remediation Executed*\\n`;\n  message += `Critical severity detected - automated actions taken\\n`;\n}\n\nmessage += `\\nTimestamp: ${data.timestamp}`;\n\nreturn [{\n  json: {\n    channel: '#security-incidents',\n    text: message,\n    severity: data.severity,\n    priority: data.priority,\n    blocks: [\n      {\n        type: 'header',\n        text: {\n          type: 'plain_text',\n          text: `\ud83d\udea8 ${data.severity.toUpperCase()} Incident`,\n          emoji: true\n        }\n      },\n      {\n        type: 'section',\n        text: {\n          type: 'mrkdwn',\n          text: message\n        }\n      }\n    ]\n  }\n}];"
+      },
+      "name": "Format Incident Alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2250,
+        400
+      ],
+      "id": "5653ebd0-b096-493c-83b9-67f908e5e89f"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{{\n  \"status\": \"success\",\n  \"alertId\": $node['Extract Webhook Data'].json.alertId,\n  \"severity\": $node['Parse AI Analysis'].json.severity,\n  \"riskScore\": $node['Parse AI Analysis'].json.riskScore,\n  \"message\": \"Alert triaged successfully\"\n}}}",
+        "options": {}
+      },
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2450,
+        300
+      ],
+      "id": "a022c72c-12a0-4cb9-b4e9-be7c541b16a2"
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Webhook Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Webhook Data": {
+      "main": [
+        [
+          {
+            "node": "Get Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Token": {
+      "main": [
+        [
+          {
+            "node": "Fetch Alert Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Alert Details": {
+      "main": [
+        [
+          {
+            "node": "Get Similar Alerts",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Extract Threat Indicators",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Similar Alerts": {
+      "main": [
+        [
+          {
+            "node": "Prepare Correlation Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Threat Indicators": {
+      "main": [
+        [
+          {
+            "node": "Prepare Correlation Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Correlation Prompt": {
+      "main": [
+        [
+          {
+            "node": "LLM Correlation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM Correlation": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Analysis": {
+      "main": [
+        [
+          {
+            "node": "IF Critical Severity",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Format Incident Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Critical Severity": {
+      "main": [
+        [
+          {
+            "node": "Plan Remediation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Plan Remediation": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Incident Alert": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "a37de444-1100-478b-a01f-3b17dd0953a2",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-12-26T21:38:49.178Z",
+      "createdAt": "2025-12-26T21:38:49.178Z",
+      "role": "workflow:owner",
+      "workflowId": "c0ycWQyawCubUfns",
+      "projectId": "5zyza4bMeIQj3EHD"
+    }
+  ],
+  "activeVersion": null,
+  "tags": []
+}

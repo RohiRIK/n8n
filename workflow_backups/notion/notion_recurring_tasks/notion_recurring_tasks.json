@@ -1,16 +1,21 @@
 {
+  "updatedAt": "2025-12-29T07:17:13.303Z",
+  "createdAt": "2025-12-29T07:08:00.727Z",
+  "id": "vh845ihavXd4pgtf",
   "name": "notion_recurring_tasks",
+  "active": false,
+  "isArchived": false,
   "nodes": [
     {
       "parameters": {},
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
-        -288,
-        160
+        16,
+        224
       ],
-      "id": "4c5772c3-91e8-42c2-ba93-cc53b8b54a7b",
-      "name": "When clicking ‘Test workflow’"
+      "id": "90706155-d45b-40d4-9193-80e23b4111a5",
+      "name": "When clicking \u2018Test workflow\u2019"
     },
     {
       "parameters": {
@@ -44,30 +49,17 @@
       "type": "n8n-nodes-base.notion",
       "typeVersion": 2.2,
       "position": [
-        -16,
-        0
+        352,
+        64
       ],
-      "id": "53968ade-210b-4f46-a41d-7aa7f8b880dd",
+      "id": "ffe14385-ae83-487d-a109-af6558fa89a3",
       "name": "Notion",
       "credentials": {
         "notionApi": {
-          "id": "Vpza7HmATHumPcuq",
+          "id": "egSxIZ41p0RgD0E4",
           "name": "Notion account"
         }
       }
-    },
-    {
-      "parameters": {
-        "options": {}
-      },
-      "type": "n8n-nodes-base.splitInBatches",
-      "typeVersion": 3,
-      "position": [
-        432,
-        0
-      ],
-      "id": "524093f2-ec23-4fb3-8290-4dd6f48f1334",
-      "name": "Loop Over Items"
     },
     {
       "parameters": {
@@ -96,14 +88,14 @@
       "type": "n8n-nodes-base.notion",
       "typeVersion": 2.2,
       "position": [
-        1600,
-        208
+        2320,
+        272
       ],
-      "id": "384e82f0-eba7-4b29-9e94-103c077b7feb",
+      "id": "bad72ce3-7817-4137-bf69-f101a6c68171",
       "name": "Notion1",
       "credentials": {
         "notionApi": {
-          "id": "Vpza7HmATHumPcuq",
+          "id": "egSxIZ41p0RgD0E4",
           "name": "Notion account"
         }
       }
@@ -137,10 +129,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1120,
-        80
+        1504,
+        112
       ],
-      "id": "7f99de08-ce36-42c4-a9dd-afed9e636b3e",
+      "id": "2f6ed165-ce5b-4d68-a295-185e51ccd23f",
       "name": "Edit Fields"
     },
     {
@@ -157,28 +149,28 @@
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
-        -304,
-        -64
+        0,
+        0
       ],
-      "id": "c08f3767-4131-411f-9f37-4da257b803f1",
+      "id": "5eddb42b-e002-484c-b03a-676923138c64",
       "name": "Schedule Trigger"
     },
     {
       "parameters": {
-        "jsCode": "function getNextDay(dateString) {\n  try {\n    const inputDate = new Date(dateString);\n    if (isNaN(inputDate.getTime())) {\n      throw new Error('Invalid date format provided.');\n    }\n    inputDate.setDate(inputDate.getDate() + 1);\n    return inputDate.toISOString();\n  } catch (error) {\n    console.error(\"Error calculating next day:\", error.message);\n    return null;\n  }\n}\n\n\n// n8n requires you to process an array of items.\n// This loop will run for every item that the node receives.\nfor (const item of items) {\n  // Get the date string from the input item.\n  // We assume the field is named 'property_last_edited_time'. Change this if your field has a different name.\n  const myDate = item.json.property_last_edited_time;\n\n  // Call the function to calculate the next day.\n  const nextDay = getNextDay(myDate);\n\n  // Add the result to a new field in the item called 'nextDay'.\n  // This makes it available for subsequent nodes.\n  item.json.nextDay = nextDay;\n}\n\n// Return all the processed items to be passed on to the next node in the workflow.\nreturn items;\n"
+        "jsCode": "function getNextDaySkipWeekend(dateString) {\n  try {\n    const date = new Date(dateString);\n    \n    if (isNaN(date.getTime())) {\n      throw new Error('Invalid date format provided.');\n    }\n\n    // 1. Always start by adding 1 day (tomorrow)\n    date.setDate(date.getDate() + 1);\n\n    // 2. Check which day of the week it is\n    // JavaScript counts: 0=Sunday, ... 5=Friday, 6=Saturday\n    const dayOfWeek = date.getDay();\n\n    // 3. If it lands on a weekend, push it to Sunday\n    if (dayOfWeek === 5) { \n      // It is Friday -> Add 2 days to get to Sunday\n      date.setDate(date.getDate() + 2);\n    } else if (dayOfWeek === 6) { \n      // It is Saturday -> Add 1 day to get to Sunday\n      date.setDate(date.getDate() + 1);\n    }\n    \n    // If it's Sunday through Thursday, we leave it alone.\n\n    return date.toISOString();\n  } catch (error) {\n    console.error(\"Error calculating next day:\", error.message);\n    return null;\n  }\n}\n\nfor (const item of items) {\n  const myDate = item.json.property_last_edited_time;\n  \n  // Calculate the next day, skipping weekends\n  const nextDay = getNextDaySkipWeekend(myDate);\n\n  item.json.nextDay = nextDay;\n}\n\nreturn items;"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        768,
-        48
+        1088,
+        80
       ],
-      "id": "1753afc6-ba95-4ce9-8a0b-d021e85bed3b",
+      "id": "acf19854-0a34-4f04-833e-4f641b5e61f7",
       "name": "addding_next_day"
     }
   ],
   "connections": {
-    "When clicking ‘Test workflow’": {
+    "When clicking \u2018Test workflow\u2019": {
       "main": [
         [
           {
@@ -193,18 +185,6 @@
       "main": [
         [
           {
-            "node": "Loop Over Items",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Loop Over Items": {
-      "main": [
-        [],
-        [
-          {
             "node": "addding_next_day",
             "type": "main",
             "index": 0
@@ -214,13 +194,7 @@
     },
     "Notion1": {
       "main": [
-        [
-          {
-            "node": "Loop Over Items",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        []
       ]
     },
     "Edit Fields": {
@@ -257,12 +231,34 @@
       ]
     }
   },
-  "active": true,
   "settings": {
     "executionOrder": "v1",
-    "timezone": "Asia/Jerusalem",
-    "callerPolicy": "workflowsFromSameOwner"
+    "availableInMCP": false
   },
-  "createdAt": "2025-03-30T06:09:32.007Z",
-  "updatedAt": "2025-07-18T12:03:41.530Z"
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "75f75218-cbf1-4b9e-8ad6-a00c2b1dde41",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-12-29T07:08:00.727Z",
+      "createdAt": "2025-12-29T07:08:00.727Z",
+      "role": "workflow:owner",
+      "workflowId": "vh845ihavXd4pgtf",
+      "projectId": "5zyza4bMeIQj3EHD"
+    }
+  ],
+  "activeVersion": null,
+  "tags": [
+    {
+      "updatedAt": "2025-12-29T07:07:59.919Z",
+      "createdAt": "2025-12-29T07:07:59.919Z",
+      "id": "R3u5HVCyuBAtRT11",
+      "name": "Notion"
+    }
+  ]
 }

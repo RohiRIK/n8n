@@ -1,0 +1,249 @@
+{
+  "updatedAt": "2025-12-26T21:41:17.247Z",
+  "createdAt": "2025-12-26T21:38:49.073Z",
+  "id": "paPKgUYOtWiMS3V8",
+  "name": "Emergency Account CA Monitor",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        250,
+        300
+      ],
+      "id": "fe0f1de7-d150-43ab-aeb3-54e9eae6b966"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Configure emergency break-glass accounts\nconst emergencyAccounts = [\n  'breakglass1@yourtenant.com',\n  'breakglass2@yourtenant.com'\n];\n\nreturn [{\n  json: {\n    emergencyAccounts: emergencyAccounts,\n    tenantId: $env.MS_TENANT_ID,\n    clientId: $env.MS_CLIENT_ID\n  }\n}];"
+      },
+      "name": "Set Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        450,
+        300
+      ],
+      "id": "7812bc90-714a-4a6b-aada-4f564a958a14"
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "MS Graph - Get Token",
+          "mode": "name"
+        },
+        "options": {
+          "inputData": {
+            "mode": "json",
+            "jsonData": "={\"tenantId\": \"{{$json.tenantId}}\", \"clientId\": \"{{$json.clientId}}\"}"
+          }
+        }
+      },
+      "name": "Get Token",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        650,
+        300
+      ],
+      "id": "7a983a9b-ada2-4c59-bc30-c6311b0f6d05"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$node['Get Token'].json.accessToken}}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "name": "Get CA Policies",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        850,
+        300
+      ],
+      "id": "b9ca46a5-aec5-4af5-9f7b-96fd5edebd12"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Check if emergency accounts are excluded from all CA policies\nconst policies = $input.first().json.value || [];\nconst emergencyAccounts = $node['Set Config'].json.emergencyAccounts;\nconst violations = [];\n\nfor (const policy of policies) {\n  // Skip disabled policies\n  if (policy.state !== 'enabled') continue;\n  \n  const excludedUsers = policy.conditions?.users?.excludeUsers || [];\n  \n  for (const emergencyAccount of emergencyAccounts) {\n    if (!excludedUsers.includes(emergencyAccount)) {\n      violations.push({\n        policyId: policy.id,\n        policyName: policy.displayName,\n        missingAccount: emergencyAccount,\n        severity: 'HIGH',\n        policyState: policy.state,\n        timestamp: new Date().toISOString()\n      });\n    }\n  }\n}\n\nreturn [{\n  json: {\n    violations: violations,\n    violationCount: violations.length,\n    policiesChecked: policies.filter(p => p.state === 'enabled').length,\n    emergencyAccountsChecked: emergencyAccounts.length\n  }\n}];"
+      },
+      "name": "Check Exclusions",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1050,
+        300
+      ],
+      "id": "179aa35c-5cbb-4ae3-8315-ccec71c38ae4"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition1",
+              "leftValue": "={{$json.violationCount}}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "IF Violations",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1250,
+        300
+      ],
+      "id": "8b3995fd-e592-4167-a0e2-3947b1c0b8e9"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Format violation alert for Slack\nconst data = $input.first().json;\nconst violations = data.violations;\n\nlet message = `\ud83d\udea8 *CRITICAL: Emergency Account CA Policy Violations Detected*\\n\\n`;\nmessage += `Found ${violations.length} violation(s) across ${data.policiesChecked} enabled policies\\n\\n`;\n\nfor (const v of violations) {\n  message += `\u2022 Policy: *${v.policyName}*\\n`;\n  message += `  Missing Account: ${v.missingAccount}\\n`;\n  message += `  Severity: ${v.severity}\\n\\n`;\n}\n\nmessage += `\u26a0\ufe0f *Action Required*: Add emergency accounts to policy exclusions immediately\\n`;\nmessage += `Timestamp: ${new Date().toISOString()}`;\n\nreturn [{\n  json: {\n    channel: '#security-alerts',\n    text: message,\n    blocks: [\n      {\n        type: 'header',\n        text: {\n          type: 'plain_text',\n          text: '\ud83d\udea8 Emergency Account CA Violations',\n          emoji: true\n        }\n      },\n      {\n        type: 'section',\n        text: {\n          type: 'mrkdwn',\n          text: message\n        }\n      }\n    ]\n  }\n}];"
+      },
+      "name": "Format Alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1450,
+        200
+      ],
+      "id": "5f88cb48-89e9-4f83-ba7e-b2eb13747647"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Config": {
+      "main": [
+        [
+          {
+            "node": "Get Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Token": {
+      "main": [
+        [
+          {
+            "node": "Get CA Policies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get CA Policies": {
+      "main": [
+        [
+          {
+            "node": "Check Exclusions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Exclusions": {
+      "main": [
+        [
+          {
+            "node": "IF Violations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Violations": {
+      "main": [
+        [
+          {
+            "node": "Format Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "4c94305f-cd30-4e52-8ee3-47d23e788b18",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-12-26T21:38:49.073Z",
+      "createdAt": "2025-12-26T21:38:49.073Z",
+      "role": "workflow:owner",
+      "workflowId": "paPKgUYOtWiMS3V8",
+      "projectId": "5zyza4bMeIQj3EHD"
+    }
+  ],
+  "activeVersion": null,
+  "tags": []
+}
