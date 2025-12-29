@@ -1,0 +1,73 @@
+{
+  "categories": {
+    "backup": [
+      "backup_flow_to_github",
+      "backup_flow_to_homelab_rpo",
+      "backup_flow_to_notion"
+    ],
+    "blogging": [
+      "blogger_automation",
+      "web_clips_ai_agent",
+      "web_clips_process",
+      "youtube_summary_to_rss",
+      "ultimate_automation_solutions_for_it"
+    ],
+    "security": [
+      "gemini_for_security",
+      "phishguard365",
+      "break_glass_account_automation",
+      "open_ticket_with_ai"
+    ],
+    "notion": [
+      "notion_expense_months_and_years_loop",
+      "notion_recurring_tasks",
+      "notion_update_subscription"
+    ],
+    "alerts": [
+      "alert_system",
+      "unified_webhook_system"
+    ],
+    "agents": [
+      "searxng_agent",
+      "core_subject_vector",
+      "firecrawl_web_request"
+    ],
+    "authentication": [
+      "graph_authentications"
+    ]
+  },
+  "renames": {
+    "bloger_automationV2": "blogger_automation",
+    "firecrawl_webrequst": "firecrawl_web_request",
+    "notion_expens_months_and_years_loop": "notion_expense_months_and_years_loop",
+    "Break Glass Account Automation for n8n": "break_glass_account_automation",
+    "Ultimate_Automation_Solutions_for_IT": "ultimate_automation_solutions_for_it",
+    "YouTube-summary-to-rss": "youtube_summary_to_rss",
+    "Alert_System": "alert_system",
+    "Graph_Authentications": "graph_authentications",
+    "Open_ticket_with_ai": "open_ticket_with_ai",
+    "gemini_for_securityV2": "gemini_for_security",
+    "Gemini_for_security": "gemini_for_security_v1",
+    "bloger_automation": "blogger_automation_v1"
+  },
+  "archives": [
+    "Gemini_for_security",
+    "bloger_automation",
+    "Gemini_for_securityV2"
+  ],
+  "duplicates": {
+    "gemini_for_security": {
+      "keep": "gemini_for_securityV2",
+      "archive": ["Gemini_for_security"],
+      "merge_docs_from": "Gemini_for_securityV2"
+    },
+    "blogger_automation": {
+      "keep": "bloger_automationV2",
+      "archive": ["bloger_automation"]
+    }
+  },
+  "documentation_moves": {
+    "Gemini_for_securityV2": "docs/workflows/gemini_for_security",
+    "YouTube-summary-to-rss": "docs/workflows/youtube_summary_to_rss"
+  }
+}

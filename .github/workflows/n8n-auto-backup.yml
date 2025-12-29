@@ -1,0 +1,87 @@
+name: N8N Workflow Auto-Backup
+
+on:
+  schedule:
+    # Run every 6 hours
+    - cron: '0 */6 * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+permissions:
+  contents: write
+
+env:
+  N8N_API_URL: ${{ secrets.N8N_API_URL }}
+  N8N_API_TOKEN: ${{ secrets.N8N_API_TOKEN }}
+
+jobs:
+  backup-workflows:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for proper diffing
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        pip install requests
+
+    - name: Fetch workflows from n8n API
+      id: fetch
+      run: python3 scripts/fetch_n8n_workflows.py
+      env:
+        N8N_API_URL: ${{ env.N8N_API_URL }}
+        N8N_API_TOKEN: ${{ env.N8N_API_TOKEN }}
+
+    - name: Update catalog
+      run: python3 scripts/catalog_workflows.py || true
+
+    - name: Check for changes
+      id: changes
+      run: |
+        git add workflow_backups/ docs/
+        if git diff --staged --quiet; then
+          echo "changed=false" >> $GITHUB_OUTPUT
+          echo "No changes detected"
+        else
+          echo "changed=true" >> $GITHUB_OUTPUT
+          git diff --staged --name-only > changed_files.txt
+          echo "Changes detected:"
+          cat changed_files.txt
+        fi
+
+    - name: Commit and push changes
+      if: steps.changes.outputs.changed == 'true'
+      run: |
+        git config user.name 'github-actions[bot]'
+        git config user.email 'github-actions[bot]@users.noreply.github.com'
+
+        CHANGED_COUNT=$(wc -l < changed_files.txt)
+
+        # Create commit message
+        cat > commit_message.txt << 'EOF'
+        Auto-backup: Updated $CHANGED_COUNT workflow(s)
+
+        Changed workflows:
+        $(head -20 changed_files.txt)
+
+        Triggered by: ${{ github.event_name }}
+        Timestamp: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
+        EOF
+
+        # Replace variables in commit message
+        sed -i "s/\$CHANGED_COUNT/$CHANGED_COUNT/g" commit_message.txt
+        sed -i "s/\${{ github.event_name }}/${{ github.event_name }}/g" commit_message.txt
+
+        git commit -F commit_message.txt
+        git push
+
+    - name: Cleanup
+      if: always()
+      run: rm -f changed_files.txt commit_message.txt

@@ -15,6 +15,15 @@ def try_load_json(path):
     except Exception as e:
         return None, str(e)
 
+def extract_category(folder_path):
+    """Extract category from folder path if it's in workflow_backups"""
+    parts = folder_path.split(os.sep)
+    if 'workflow_backups' in parts:
+        idx = parts.index('workflow_backups')
+        if len(parts) > idx + 1:
+            return parts[idx + 1]
+    return ""
+
 def collect(root, rel_dirs):
     items = []
     now = datetime.datetime.utcnow().isoformat() + "Z"
@@ -31,9 +40,11 @@ def collect(root, rel_dirs):
                 size = os.path.getsize(path)
                 digest = sha1(path)
                 data, err = try_load_json(path)
+                folder_rel = os.path.relpath(dirpath, root)
                 record = {
                     "path": relpath,
-                    "folder": os.path.relpath(dirpath, root),
+                    "folder": folder_rel,
+                    "category": extract_category(folder_rel),
                     "file": fn,
                     "size_bytes": size,
                     "sha1": digest,
@@ -62,11 +73,12 @@ def write_outputs(root, items):
     lines = []
     lines.append("# Workflow Catalog")
     lines.append("")
-    lines.append("| Path | Name | Nodes | Tags | Size | SHA1 |")
-    lines.append("|---|---:|---:|---|---:|---|")
+    lines.append("| Category | Path | Name | Nodes | Tags | Size | SHA1 |")
+    lines.append("|---|---|---:|---:|---|---:|---|")
     for it in items:
+        category = it.get('category', '')
         tags = ", ".join(it.get("tags", [])) if it.get("tags") else ""
-        lines.append(f"| {it['path']} | {it.get('name','')} | {it.get('node_count','')} | {tags} | {it['size_bytes']} | {it['sha1'][:10]} |")
+        lines.append(f"| {category} | {it['path']} | {it.get('name','')} | {it.get('node_count','')} | {tags} | {it['size_bytes']} | {it['sha1'][:10]} |")
     with open(md_out, "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")
     print(f"Wrote {json_out} and {md_out} with {len(items)} entries.")

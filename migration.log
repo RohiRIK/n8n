@@ -1,0 +1,181 @@
+[2025-12-29 10:02:18] [INFO] === N8N Workflow Migration Started ===
+[2025-12-29 10:02:18] [INFO] Dry-run mode: True
+[2025-12-29 10:02:18] [INFO] Repository root: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n
+[2025-12-29 10:02:18] [INFO] Loading mapping from: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/scripts/migration_mapping.json
+[2025-12-29 10:02:18] [INFO] Validating source state
+[2025-12-29 10:02:18] [INFO] Found 24 workflow directories
+[2025-12-29 10:02:18] [INFO] Found 22 JSON workflow files
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would create backup: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n-backup-20251229-100218.tar.gz
+[2025-12-29 10:02:18] [INFO] === Starting Migration ===
+[2025-12-29 10:02:18] [INFO] Step 1: Creating category structure
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would create: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/backup
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would create: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/blogging
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would create: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/security
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would create: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/notion
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would create: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/alerts
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would create: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/agents
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would create: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/authentication
+[2025-12-29 10:02:18] [INFO] Step 2: Handling duplicates
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would archive: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/Gemini_for_security -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/archived/workflows/gemini_for_security_v1
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would archive: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/bloger_automation -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/archived/workflows/blogger_automation_v1
+[2025-12-29 10:02:18] [INFO] Step 3: Migrating documentation
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would move 5 markdown files: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/Gemini_for_securityV2 -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/docs/workflows/gemini_for_security
+[2025-12-29 10:02:18] [INFO] [DRY-RUN]   idea.md
+[2025-12-29 10:02:18] [INFO] [DRY-RUN]   Step_by_Step.md
+[2025-12-29 10:02:18] [INFO] [DRY-RUN]   README.md
+[2025-12-29 10:02:18] [INFO] [DRY-RUN]   enrichment.md
+[2025-12-29 10:02:18] [INFO] [DRY-RUN]   agents.md
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would move 1 markdown files: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/YouTube-summary-to-rss -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/docs/workflows/youtube_summary_to_rss
+[2025-12-29 10:02:18] [INFO] [DRY-RUN]   Overview.md
+[2025-12-29 10:02:18] [INFO] Step 4: Moving workflows to categories
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would move: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/backup_flow_to_github -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/backup/backup_flow_to_github
+[2025-12-29 10:02:18] [INFO] [DRY-RUN]   JSON file: backup_flow_to_github_soRKLXD9NcyyJAzz.json
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would move: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/backup_flow_to_homelab_rpo -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/backup/backup_flow_to_homelab_rpo
+[2025-12-29 10:02:18] [INFO] [DRY-RUN]   JSON file: backup_flow_to_homelab_rpo_r4lS2TaELMoKolrU.json
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would move: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/backup_flow_to_notion -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/backup/backup_flow_to_notion
+[2025-12-29 10:02:18] [INFO] [DRY-RUN]   JSON file: backup_flow_to_notion_FfdH5Y4KH7kP3nES.json
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would move: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/web_clips_ai_agent -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/blogging/web_clips_ai_agent
+[2025-12-29 10:02:18] [INFO] [DRY-RUN]   JSON file: web_clips_ai_agent_FnMbVGv8qfuCf7QK.json
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would move: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/web_clips_process -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/blogging/web_clips_process
+[2025-12-29 10:02:18] [INFO] [DRY-RUN]   JSON file: web_clips_process_l3WvkMaKiro3TsZT.json
+[2025-12-29 10:02:18] [WARNING] No JSON file found in /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/YouTube-summary-to-rss
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would move: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/Ultimate_Automation_Solutions_for_IT -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/blogging/ultimate_automation_solutions_for_it
+[2025-12-29 10:02:18] [INFO] [DRY-RUN]   JSON file: Ultimate_Automation_Solutions_for_IT_8QGyHw4dP2f1UG9D.json
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would move: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/phishguard365 -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/security/phishguard365
+[2025-12-29 10:02:18] [INFO] [DRY-RUN]   JSON file: PhishGuard365_CAgo5rUtdWqqWmcs.json
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would move: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/Break Glass Account Automation for n8n -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/security/break_glass_account_automation
+[2025-12-29 10:02:18] [INFO] [DRY-RUN]   JSON file: Break Glass Account Automation for n8n_WV7ZQAl273b5dfAa.json
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would move: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/Open_ticket_with_ai -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/security/open_ticket_with_ai
+[2025-12-29 10:02:18] [INFO] [DRY-RUN]   JSON file: Open_ticket_with_ai_lVer8jNXRRPV93j7.json
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would move: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/notion_expens_months_and_years_loop -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/notion/notion_expense_months_and_years_loop
+[2025-12-29 10:02:18] [INFO] [DRY-RUN]   JSON file: notion_expens_months_and_years_loop_sWUGxQttFBtG9M00.json
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would move: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/notion_recurring_tasks -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/notion/notion_recurring_tasks
+[2025-12-29 10:02:18] [INFO] [DRY-RUN]   JSON file: notion_recurring_tasks_JtxA8ngj0xKivwCU.json
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would move: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/notion_update_subscription -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/notion/notion_update_subscription
+[2025-12-29 10:02:18] [INFO] [DRY-RUN]   JSON file: notion_update_subscription_EiqHJh9WJ2EKSyeS.json
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would move: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/Alert_System -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/alerts/alert_system
+[2025-12-29 10:02:18] [INFO] [DRY-RUN]   JSON file: Alert_System_vbBUBGrZKfKNYzOm.json
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would move: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/unified_webhook_system -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/alerts/unified_webhook_system
+[2025-12-29 10:02:18] [INFO] [DRY-RUN]   JSON file: unified_webhook_system_5jMa9aLoCc0n6roT.json
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would move: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/searxng_agent -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/agents/searxng_agent
+[2025-12-29 10:02:18] [INFO] [DRY-RUN]   JSON file: searxng_agent_7rU5bJ2kRVaatK9G.json
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would move: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/core_subject_vector -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/agents/core_subject_vector
+[2025-12-29 10:02:18] [INFO] [DRY-RUN]   JSON file: core_subject_vector_WUmV5IOao23PYVxp.json
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would move: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/firecrawl_webrequst -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/agents/firecrawl_web_request
+[2025-12-29 10:02:18] [INFO] [DRY-RUN]   JSON file: firecrawl_webrequst_5DZajHM0sRZJBsYa.json
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would move: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/Graph_Authentications -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/authentication/graph_authentications
+[2025-12-29 10:02:18] [INFO] [DRY-RUN]   JSON file: Graph_Authentications_AqXSw6wEYNinHnEn.json
+[2025-12-29 10:02:18] [INFO] Step 5: Moving kept duplicate workflows
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would move: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/gemini_for_securityV2 -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/security/gemini_for_security
+[2025-12-29 10:02:18] [INFO] [DRY-RUN]   JSON file: gemini_for_securityV2_Nx0w4iZCitmaAY2K.json
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would move: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/bloger_automationV2 -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/blogging/blogger_automation
+[2025-12-29 10:02:18] [INFO] [DRY-RUN]   JSON file: bloger_automationV2_qAchpRmYTNmVuivw.json
+[2025-12-29 10:02:18] [INFO] Step 6: Archiving remaining old versions
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would archive: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/Gemini_for_security -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/archived/workflows/gemini_for_security_v1
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would archive: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/bloger_automation -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/archived/workflows/blogger_automation_v1
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would archive: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/Gemini_for_securityV2 -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/archived/workflows/Gemini_for_securityV2
+[2025-12-29 10:02:18] [INFO] Step 7: Cleaning up old directories
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would remove old directory: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/backup_flow_to_github
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would remove old directory: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/web_clips_process
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would remove old directory: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/bloger_automation
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would remove old directory: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/notion_recurring_tasks
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would remove old directory: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/notion_update_subscription
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would remove old directory: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/backup_flow_to_homelab_rpo
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would remove old directory: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/YouTube-summary-to-rss
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would remove old directory: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/web_clips_ai_agent
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would remove old directory: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/searxng_agent
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would remove old directory: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/Gemini_for_securityV2
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would remove old directory: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/core_subject_vector
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would remove old directory: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/unified_webhook_system
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would remove old directory: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/Alert_System
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would remove old directory: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/firecrawl_webrequst
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would remove old directory: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/gemini_for_securityV2
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would remove old directory: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/notion_expens_months_and_years_loop
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would remove old directory: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/bloger_automationV2
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would remove old directory: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/Ultimate_Automation_Solutions_for_IT
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would remove old directory: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/Break Glass Account Automation for n8n
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would remove old directory: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/Gemini_for_security
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would remove old directory: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/backup_flow_to_notion
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would remove old directory: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/Graph_Authentications
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would remove old directory: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/Open_ticket_with_ai
+[2025-12-29 10:02:18] [INFO] [DRY-RUN] Would remove old directory: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/phishguard365
+[2025-12-29 10:02:18] [SUCCESS] === Migration Complete ===
+[2025-12-29 10:02:18] [SUCCESS] === Migration Script Finished ===
+[2025-12-29 10:03:46] [INFO] === N8N Workflow Migration Started ===
+[2025-12-29 10:03:46] [INFO] Dry-run mode: False
+[2025-12-29 10:03:46] [INFO] Repository root: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n
+[2025-12-29 10:03:46] [INFO] Loading mapping from: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/scripts/migration_mapping.json
+[2025-12-29 10:03:46] [INFO] Validating source state
+[2025-12-29 10:03:46] [INFO] Found 24 workflow directories
+[2025-12-29 10:03:46] [INFO] Found 22 JSON workflow files
+[2025-12-29 10:03:46] [INFO] Creating backup: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n-backup-20251229-100346.tar.gz
+[2025-12-29 10:03:46] [SUCCESS] Backup created successfully: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n-backup-20251229-100346.tar.gz
+[2025-12-29 10:03:46] [INFO] === Starting Migration ===
+[2025-12-29 10:03:46] [INFO] Step 1: Creating category structure
+[2025-12-29 10:03:46] [SUCCESS] Created category: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/backup
+[2025-12-29 10:03:46] [SUCCESS] Created category: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/blogging
+[2025-12-29 10:03:46] [SUCCESS] Created category: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/security
+[2025-12-29 10:03:46] [SUCCESS] Created category: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/notion
+[2025-12-29 10:03:46] [SUCCESS] Created category: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/alerts
+[2025-12-29 10:03:46] [SUCCESS] Created category: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/agents
+[2025-12-29 10:03:46] [SUCCESS] Created category: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/authentication
+[2025-12-29 10:03:46] [INFO] Step 2: Handling duplicates
+[2025-12-29 10:03:46] [SUCCESS] Archived: Gemini_for_security -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/archived/workflows/gemini_for_security_v1
+[2025-12-29 10:03:46] [SUCCESS] Archived: bloger_automation -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/archived/workflows/blogger_automation_v1
+[2025-12-29 10:03:46] [INFO] Step 3: Migrating documentation
+[2025-12-29 10:03:46] [SUCCESS] Moved documentation: idea.md -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/docs/workflows/gemini_for_security/idea.md
+[2025-12-29 10:03:46] [SUCCESS] Moved documentation: Step_by_Step.md -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/docs/workflows/gemini_for_security/Step_by_Step.md
+[2025-12-29 10:03:46] [SUCCESS] Moved documentation: README.md -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/docs/workflows/gemini_for_security/README.md
+[2025-12-29 10:03:46] [SUCCESS] Moved documentation: enrichment.md -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/docs/workflows/gemini_for_security/enrichment.md
+[2025-12-29 10:03:46] [SUCCESS] Moved documentation: agents.md -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/docs/workflows/gemini_for_security/agents.md
+[2025-12-29 10:03:46] [SUCCESS] Moved documentation: Overview.md -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/docs/workflows/youtube_summary_to_rss/Overview.md
+[2025-12-29 10:03:46] [INFO] Step 4: Moving workflows to categories
+[2025-12-29 10:03:46] [SUCCESS] Moved workflow: backup_flow_to_github -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/backup/backup_flow_to_github
+[2025-12-29 10:03:46] [SUCCESS] Moved workflow: backup_flow_to_homelab_rpo -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/backup/backup_flow_to_homelab_rpo
+[2025-12-29 10:03:46] [SUCCESS] Moved workflow: backup_flow_to_notion -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/backup/backup_flow_to_notion
+[2025-12-29 10:03:46] [SUCCESS] Moved workflow: web_clips_ai_agent -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/blogging/web_clips_ai_agent
+[2025-12-29 10:03:46] [SUCCESS] Moved workflow: web_clips_process -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/blogging/web_clips_process
+[2025-12-29 10:03:46] [WARNING] No JSON file found in /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/YouTube-summary-to-rss
+[2025-12-29 10:03:46] [SUCCESS] Moved workflow: Ultimate_Automation_Solutions_for_IT -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/blogging/ultimate_automation_solutions_for_it
+[2025-12-29 10:03:46] [SUCCESS] Moved workflow: phishguard365 -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/security/phishguard365
+[2025-12-29 10:03:46] [SUCCESS] Moved workflow: Break Glass Account Automation for n8n -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/security/break_glass_account_automation
+[2025-12-29 10:03:46] [SUCCESS] Moved workflow: Open_ticket_with_ai -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/security/open_ticket_with_ai
+[2025-12-29 10:03:46] [SUCCESS] Moved workflow: notion_expens_months_and_years_loop -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/notion/notion_expense_months_and_years_loop
+[2025-12-29 10:03:46] [SUCCESS] Moved workflow: notion_recurring_tasks -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/notion/notion_recurring_tasks
+[2025-12-29 10:03:46] [SUCCESS] Moved workflow: notion_update_subscription -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/notion/notion_update_subscription
+[2025-12-29 10:03:46] [SUCCESS] Moved workflow: Alert_System -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/alerts/alert_system
+[2025-12-29 10:03:46] [SUCCESS] Moved workflow: unified_webhook_system -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/alerts/unified_webhook_system
+[2025-12-29 10:03:46] [SUCCESS] Moved workflow: searxng_agent -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/agents/searxng_agent
+[2025-12-29 10:03:46] [SUCCESS] Moved workflow: core_subject_vector -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/agents/core_subject_vector
+[2025-12-29 10:03:46] [SUCCESS] Moved workflow: firecrawl_webrequst -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/agents/firecrawl_web_request
+[2025-12-29 10:03:46] [SUCCESS] Moved workflow: Graph_Authentications -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/authentication/graph_authentications
+[2025-12-29 10:03:46] [INFO] Step 5: Moving kept duplicate workflows
+[2025-12-29 10:03:46] [SUCCESS] Moved workflow: gemini_for_securityV2 -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/security/gemini_for_security
+[2025-12-29 10:03:46] [SUCCESS] Moved workflow: bloger_automationV2 -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/workflow_backups/blogging/blogger_automation
+[2025-12-29 10:03:46] [INFO] Step 6: Archiving remaining old versions
+[2025-12-29 10:03:46] [SUCCESS] Archived: Gemini_for_securityV2 -> /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/archived/workflows/Gemini_for_securityV2
+[2025-12-29 10:03:46] [INFO] Step 7: Cleaning up old directories
+[2025-12-29 10:03:46] [WARNING] Skipping non-empty directory: backup_flow_to_github
+[2025-12-29 10:03:46] [WARNING] Skipping non-empty directory: web_clips_process
+[2025-12-29 10:03:46] [WARNING] Skipping non-empty directory: notion_recurring_tasks
+[2025-12-29 10:03:46] [WARNING] Skipping non-empty directory: notion_update_subscription
+[2025-12-29 10:03:46] [WARNING] Skipping non-empty directory: backup_flow_to_homelab_rpo
+[2025-12-29 10:03:46] [SUCCESS] Removed old directory: YouTube-summary-to-rss
+[2025-12-29 10:03:46] [WARNING] Skipping non-empty directory: web_clips_ai_agent
+[2025-12-29 10:03:46] [WARNING] Skipping non-empty directory: searxng_agent
+[2025-12-29 10:03:46] [WARNING] Skipping non-empty directory: core_subject_vector
+[2025-12-29 10:03:46] [WARNING] Skipping non-empty directory: unified_webhook_system
+[2025-12-29 10:03:46] [WARNING] Skipping non-empty directory: Alert_System
+[2025-12-29 10:03:46] [WARNING] Skipping non-empty directory: firecrawl_webrequst
+[2025-12-29 10:03:46] [WARNING] Skipping non-empty directory: gemini_for_securityV2
+[2025-12-29 10:03:46] [WARNING] Skipping non-empty directory: notion_expens_months_and_years_loop
+[2025-12-29 10:03:46] [WARNING] Skipping non-empty directory: bloger_automationV2
+[2025-12-29 10:03:46] [WARNING] Skipping non-empty directory: Ultimate_Automation_Solutions_for_IT
+[2025-12-29 10:03:46] [WARNING] Skipping non-empty directory: Break Glass Account Automation for n8n
+[2025-12-29 10:03:46] [WARNING] Skipping non-empty directory: backup_flow_to_notion
+[2025-12-29 10:03:46] [WARNING] Skipping non-empty directory: Graph_Authentications
+[2025-12-29 10:03:46] [WARNING] Skipping non-empty directory: Open_ticket_with_ai
+[2025-12-29 10:03:46] [WARNING] Skipping non-empty directory: phishguard365
+[2025-12-29 10:03:46] [SUCCESS] === Migration Complete ===
+[2025-12-29 10:03:46] [SUCCESS] Generated rollback script: /home/rohi/homelab/swarm/stacks/04-n8n/n8n-repos/n8n/scripts/rollback_migration.sh
+[2025-12-29 10:03:46] [SUCCESS] === Migration Script Finished ===
